@@ -1,20 +1,23 @@
-import { useState, useRef, type FormEvent } from "react";
-import { useBackend } from "./backend-context.tsx";
+import { MouseEvent, useRef, useState } from 'react';
 
-interface Props {
+import { useBackend } from './backend-context';
+
+export type RecipeFormProps = {
   onCreated: () => void;
 }
 
-export function RecipeForm({ onCreated }: Props) {
+export function RecipeForm({ onCreated }: RecipeFormProps) {
   const backend = useBackend();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: MouseEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim()) {
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -77,6 +80,7 @@ export function RecipeForm({ onCreated }: Props) {
         </label>
 
         <button
+          type="submit"
           onClick={handleSubmit}
           disabled={submitting || !title.trim()}
           style={{

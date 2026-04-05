@@ -1,9 +1,10 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { App } from "./App.tsx";
-import { BackendProvider } from "./backend-context.tsx";
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
 
-createRoot(document.getElementById("root")!).render(
+import { App } from './App';
+import { BackendProvider } from './backend-context';
+
+createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BackendProvider>
       <App />

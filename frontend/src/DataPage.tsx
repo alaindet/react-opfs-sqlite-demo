@@ -1,5 +1,6 @@
-import { useState, useRef } from "react";
-import { useBackend } from "./backend-context.tsx";
+import { useState, useRef } from 'react';
+
+import { useBackend } from './backend-context';
 
 export function DataPage() {
   const backend = useBackend();
@@ -7,7 +8,7 @@ export function DataPage() {
   const [importing, setImporting] = useState(false);
   const [cleaning, setCleaning] = useState(false);
   const [status, setStatus] = useState<{
-    type: "success" | "error";
+    type: 'success' | 'error';
     message: string;
   } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);

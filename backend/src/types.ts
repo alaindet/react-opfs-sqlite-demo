@@ -1,6 +1,6 @@
 // ---- REST-like transport protocol ----
 
-export type HttpMethod = "GET" | "POST" | "DELETE";
+export type HttpMethod = 'GET' | 'POST' | 'DELETE';
 
 export interface WorkerRequest {
   id: string;

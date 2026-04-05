@@ -8,11 +8,11 @@ import {
   useEffect,
   useState,
   type ReactNode,
-} from "react";
-import { BackendClient } from "@recipe-app/backend";
+} from 'react';
+import { BackendClient } from '@recipe-app/backend';
 
 // Vite understands `?worker` imports and bundles the worker properly
-import BackendWorker from "@recipe-app/backend/src/worker.ts?worker";
+// import BackendWorker from '../../backend/src/worker.ts?worker';
 
 const Ctx = createContext<BackendClient | null>(null);
 
@@ -27,7 +27,14 @@ export function BackendProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const worker = new BackendWorker();
+    // Vite handles `new Worker(new URL(...), { type: "module" })` natively —
+    // it bundles the worker entry point and its dependencies automatically.
+    const worker = new Worker(
+      // new URL("../../backend/src/worker.ts", import.meta.url),
+      new URL('./worker.ts', import.meta.url),
+      { type: "module" }
+    );
+
     const c = new BackendClient(worker);
 
     c.waitReady()

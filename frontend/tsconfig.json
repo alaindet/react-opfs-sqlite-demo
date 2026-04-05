@@ -13,5 +13,9 @@
     "isolatedModules": true,
     "noEmit": true
   },
-  "include": ["src", "../backend/src"]
+  "include": [
+    "src",
+    "src/vite-env.d.ts",
+    "../backend/src"
+  ]
 }

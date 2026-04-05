@@ -1,17 +1,18 @@
-import { useCallback, useEffect, useState } from "react";
-import { useBackend } from "./backend-context.tsx";
-import type { Recipe } from "@recipe-app/backend";
-import { RecipeForm } from "./RecipeForm.tsx";
-import { RecipeCard } from "./RecipeCard.tsx";
-import { DataPage } from "./DataPage.tsx";
+import { useCallback, useEffect, useState } from 'react';
 
-type Tab = "recipes" | "data";
+import type { Recipe } from '@recipe-app/backend';
+import { useBackend } from './backend-context';
+import { RecipeForm } from './RecipeForm';
+import { RecipeCard } from './RecipeCard';
+import { DataPage } from './DataPage';
+
+type Tab = 'recipes' | 'data';
 
 export function App() {
   const backend = useBackend();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<Tab>("recipes");
+  const [tab, setTab] = useState<Tab>('recipes');
 
   const refresh = useCallback(async () => {
     setLoading(true);

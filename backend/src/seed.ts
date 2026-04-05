@@ -6,8 +6,8 @@
  * Idempotent: checks if recipes already exist before inserting.
  */
 
-import { getDb } from "./db.js";
-import { saveImage } from "./images.js";
+import { getDb } from './db';
+import { saveImage } from './images';
 
 interface SeedRecipe {
   title: string;

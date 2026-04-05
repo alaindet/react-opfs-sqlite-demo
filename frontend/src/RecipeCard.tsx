@@ -1,6 +1,7 @@
-import { useEffect, useState, useRef } from "react";
-import { useBackend } from "./backend-context.tsx";
-import type { Recipe } from "@recipe-app/backend";
+import { useEffect, useState, useRef } from 'react';
+
+import type { Recipe } from '@recipe-app/backend';
+import { useBackend } from './backend-context';
 
 interface Props {
   recipe: Recipe;

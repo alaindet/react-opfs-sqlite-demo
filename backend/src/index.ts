@@ -6,10 +6,6 @@
  * `new Worker(...)` – Vite handles that with `?worker` imports.
  */
 
-export { BackendClient } from "./client.js";
-export type {
-  Recipe,
-  CreateRecipeBody,
-  WorkerRequest,
-  WorkerResponse,
-} from "./types.js";
+export { BackendWorker } from './worker';
+export { BackendClient } from './client';
+export type { Recipe, CreateRecipeBody, WorkerRequest, WorkerResponse } from './types';

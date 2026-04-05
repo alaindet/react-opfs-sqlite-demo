@@ -3,19 +3,18 @@
  * Runs inside the Worker, dispatches WorkerRequest → WorkerResponse.
  */
 
-import type {
-  WorkerRequest,
-  WorkerResponse,
-  Recipe,
-  CreateRecipeBody,
-} from "./types.js";
-import { getDb } from "./db.js";
-import { saveImage, readImage, deleteImage } from "./images.js";
-import { exportDatabase, importDatabase, cleanupAll } from "./backup.js";
+import type { WorkerRequest, WorkerResponse, Recipe, CreateRecipeBody } from './types';
+import { exportDatabase, importDatabase, cleanupAll } from './backup';
+import { saveImage, readImage, deleteImage } from './images';
+import { getDb } from './db';
 
 type Handler = (
   req: WorkerRequest
-) => Promise<{ status: number; body?: unknown; binary?: ArrayBuffer }>;
+) => Promise<{
+  status: number;
+  body?: unknown;
+  binary?: ArrayBuffer;
+}>;
 
 interface Route {
   method: string;
