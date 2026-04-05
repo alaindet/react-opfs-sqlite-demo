@@ -1,2 +1,7 @@
 # react-opfs-sqlite-demo
-React demo with SQLite 3 and OPFS
+This is a recipe app that creates a local SQLite database of recipes
+
+# Usage
+npm install
+cd frontend
+npm run dev
