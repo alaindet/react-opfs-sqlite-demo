@@ -1,5 +1,5 @@
 import { WorkerRequest, WorkerResponder } from './worker-message-broker';
-import { recipesMock } from '../mocks/recipes';
+import { recipesMock } from './recipes.mock';
 import { CreateRecipeDto, Recipe } from '../types';
 import { BACKEND_ACTION } from './actions';
 

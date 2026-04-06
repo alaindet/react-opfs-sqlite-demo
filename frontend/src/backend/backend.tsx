@@ -6,9 +6,9 @@ import { BACKEND_ACTION } from './actions';
 import { WorkerResponse } from './worker-message-broker';
 
 type BackendContext = {
-  getRecipes(): Promise<WorkerResponse>;
-  createRecipe(dto: CreateRecipeDto): Promise<WorkerResponse>;
-  deleteRecipe(recipe: Recipe): Promise<WorkerResponse>;
+  getRecipes(): Promise<WorkerResponse<Recipe[]>>;
+  createRecipe(dto: CreateRecipeDto): Promise<WorkerResponse<Recipe>>;
+  deleteRecipe(recipe: Recipe): Promise<WorkerResponse<Recipe>>;
 };
 
 const ctx = createContext<BackendContext | null>(null);
