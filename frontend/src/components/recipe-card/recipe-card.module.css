@@ -1,0 +1,40 @@
+.root {
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+}
+
+.content {
+  padding: 1rem;
+}
+
+.title {
+  margin: 0;
+}
+
+.description {
+  color: #333333;
+}
+
+.footer {
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.deleteButton {
+  background-color: #dd4444;
+  border: 0;
+  color: white;
+  border-radius: 100px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: 0.15s all ease-in-out;
+}
+
+.deleteButton:hover {
+  background-color: rgb(165, 48, 48);
+}

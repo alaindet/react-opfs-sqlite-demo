@@ -10,7 +10,7 @@ export function RecipeForm({ onCreated }: RecipeFormProps) {
   const backend = useBackend();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: MouseEvent) => {
@@ -19,7 +19,7 @@ export function RecipeForm({ onCreated }: RecipeFormProps) {
       return;
     }
 
-    setSubmitting(true);
+    setIsSubmitting(true);
     try {
       let imageBuffer: ArrayBuffer | undefined;
       let fileName: string | undefined;
@@ -42,7 +42,7 @@ export function RecipeForm({ onCreated }: RecipeFormProps) {
       console.error("Failed to create recipe:", err);
       alert("Failed to create recipe. Check the console for details.");
     } finally {
-      setSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -55,7 +55,7 @@ export function RecipeForm({ onCreated }: RecipeFormProps) {
           placeholder="Title *"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          disabled={submitting}
+          disabled={isSubmitting}
           style={styles.input}
         />
 
@@ -63,7 +63,7 @@ export function RecipeForm({ onCreated }: RecipeFormProps) {
           placeholder="Description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          disabled={submitting}
+          disabled={isSubmitting}
           rows={3}
           style={styles.input}
         />
@@ -74,7 +74,7 @@ export function RecipeForm({ onCreated }: RecipeFormProps) {
             ref={fileRef}
             type="file"
             accept="image/*"
-            disabled={submitting}
+            disabled={isSubmitting}
             style={{ marginTop: 4 }}
           />
         </label>
@@ -82,13 +82,13 @@ export function RecipeForm({ onCreated }: RecipeFormProps) {
         <button
           type="submit"
           onClick={handleSubmit}
-          disabled={submitting || !title.trim()}
+          disabled={isSubmitting || !title.trim()}
           style={{
             ...styles.button,
-            opacity: submitting || !title.trim() ? 0.5 : 1,
+            opacity: isSubmitting || !title.trim() ? 0.5 : 1,
           }}
         >
-          {submitting ? "Saving…" : "Save recipe"}
+          {isSubmitting ? "Saving…" : "Save recipe"}
         </button>
       </div>
     </div>

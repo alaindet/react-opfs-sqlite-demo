@@ -5,7 +5,7 @@ import { useBackend } from './backend-context';
 
 interface Props {
   recipe: Recipe;
-  onDelete: (id: number) => void;
+  onDelete: (recipeId: Recipe['id']) => void;
 }
 
 export function RecipeCard({ recipe, onDelete }: Props) {

@@ -12,7 +12,8 @@
   "dependencies": {
     "@recipe-app/backend": "*",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-router": "^7.14.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

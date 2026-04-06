@@ -1,0 +1,4 @@
+.app {
+  margin: 0 auto;
+  max-width: min(1280px, 95vw);
+}
