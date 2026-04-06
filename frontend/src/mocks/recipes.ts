@@ -1,6 +1,6 @@
-import { Recipe } from '../../types';
+import { Recipe } from '../types';
 
-export const recipesMockData: Recipe[] = [
+export const recipesMock: Recipe[] = [
   {
     id: '1',
     title: 'Recipe 1',

@@ -1,17 +1,12 @@
-import { ChangeEvent, MouseEvent, useCallback, useRef, useState } from 'react';
+import { ChangeEvent, SubmitEvent, useCallback, useEffect, useRef, useState } from 'react';
+import clsx from 'clsx';
 
+import { CreateRecipeDto } from '../../types';
 import style from './recipe-form.module.css';
-
-// TODO: Move
-export type RecipeFormValue = {
-  title: string;
-  description: string;
-  imageFile: File;
-};
 
 export type RecipeFormProps = {
   isLoading?: boolean;
-  onCreated: (formValue: RecipeFormValue) => void;
+  onCreated: (formValue: CreateRecipeDto) => void;
 };
 
 export function RecipeForm({
@@ -20,7 +15,12 @@ export function RecipeForm({
 }: RecipeFormProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
+  const handleToggleCollapse = useCallback(() => {
+    setIsCollapsed(prev => !prev);
+  }, []);
 
   const handleTitleChange = useCallback((ev: ChangeEvent<HTMLInputElement>) => {
     setTitle(ev.target.value)
@@ -30,7 +30,13 @@ export function RecipeForm({
     setDescription(ev.target.value)
   }, []);
 
-  const handleSubmit = useCallback(async (ev: MouseEvent) => {
+  function resetForm() {
+    setTitle('');
+    setDescription('');
+    fileRef!.current!.value = '';
+  }
+
+  async function handleSubmit(ev: SubmitEvent) {
     ev.preventDefault();
 
     if (isLoading) {
@@ -40,24 +46,44 @@ export function RecipeForm({
     const imageFile = fileRef.current?.files?.[0];
 
     // Validation
-    if (!title) return;
-    if (!description) return;
-    if (!imageFile) return;
+    if (!title) {
+      alert('Invalid title');
+      return;
+    }
 
-    onCreated({
-      title,
-      description,
-      imageFile,
-    });
-  }, []);
+    if (!description) {
+      alert('Invalid description');
+      return;
+    }
+
+    if (!imageFile) {
+      alert('Invalid image');
+      return;
+    }
+
+    const dto: CreateRecipeDto = { title, description, imageFile };
+    onCreated(dto);
+    resetForm();
+  }
 
   return (
-    <form className={style.recipeForm}>
+    <form className={style.recipeForm} onSubmit={handleSubmit}>
 
-      <h2 className={style.title}>Add a recipe</h2>
+      <div className={style.header}>
+        <h2 className={style.title}>Add a recipe</h2>
+        <button
+          type="button"
+          className={style.headerButton}
+          onClick={handleToggleCollapse}
+        >
+          {isCollapsed ? 'Show' : 'Hide'}
+        </button>
+      </div>
 
-      <div className={style.controls}>
-
+      <div className={clsx(
+        style.body,
+        isCollapsed ? style['--collapsed'] : null,
+      )}>
         {/* Field: Title */}
         <div className={style.control}>
           <label htmlFor="field-title" className={style.label}>
@@ -103,18 +129,22 @@ export function RecipeForm({
             accept="image/*"
           />
         </div>
+      </div>
 
+      <div className={clsx(
+        style.footer,
+        isCollapsed ? style['--collapsed'] : null,
+      )}>
         {/* Button: Submit */}
         <button
           type="submit"
-          onClick={handleSubmit}
           disabled={isLoading}
           className={style.button}
         >
           Add Recipe
         </button>
-
       </div>
+
     </form>
   );
 }
