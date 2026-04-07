@@ -27,35 +27,69 @@ export type WorkerResponse<T extends any = any> = (
   | WorkerErrorResponse<T>
 );
 
-export class WorkerResponder<T extends any = any> {
+export function createOkWorkerResponse<
+  TRequest extends any = any,
+  TResponse extends any = any,
+>(
+  request: WorkerRequest<TRequest>,
+  message: string,
+  data: TResponse,
+): WorkerSuccessResponse<TResponse> {
+  return {
+    requestId: request.requestId,
+    requestedAt: request.requestedAt,
+    respondedAt: Date.now(),
+    action: request.action,
+    error: false,
+    message,
+    data,
+  };
+}
+
+export function createErrWorkerResponse<
+  TRequest extends any = any,
+  TResponse extends any = any,
+>(
+  request: WorkerRequest<TRequest>,
+  message: string,
+  data: TResponse,
+): WorkerErrorResponse<TResponse> {
+  return {
+    requestId: request.requestId,
+    requestedAt: request.requestedAt,
+    respondedAt: Date.now(),
+    action: request.action,
+    error: true,
+    message,
+    data,
+  };
+}
+
+export class WorkerResponder {
+
+  #worker!: DedicatedWorkerGlobalScope;
+  #request!: WorkerRequest;
+
   constructor(
-    private worker: DedicatedWorkerGlobalScope,
-    private request: WorkerRequest<T>,
-  ) {}
-
-  success(message: string, data: T): void {
-    const res = { ...this.#createResponse(message, data), error: false };
-    this.#dispatch(res);
+    worker: DedicatedWorkerGlobalScope,
+    request: WorkerRequest,
+  ) {
+    this.#worker = worker;
+    this.#request = request;
   }
 
-  error(message: string, data: T): void {
-    const res = { ...this.#createResponse(message, data), error: true };
-    this.#dispatch(res);
+  success<T extends any = any>(message: string, data: T): void {
+    const res = createOkWorkerResponse(this.#request, message, data);
+    this.dispatch(res);
   }
 
-  #dispatch<T extends any = any>(response: WorkerResponse<T>) {
-    this.worker.postMessage(response);
+  error<T extends any = any>(message: string, data: T): void {
+    const res = createErrWorkerResponse(this.#request, message, data);
+    this.dispatch(res);
   }
 
-  #createResponse(message: string, data: T): WorkerBaseResponse<T> {
-    return {
-      requestId: this.request.requestId,
-      requestedAt: this.request.requestedAt,
-      respondedAt: Date.now(),
-      action: this.request.action,
-      message,
-      data,
-    };
+  dispatch<T extends any = any>(response: WorkerResponse<T>) {
+    this.#worker.postMessage(response);
   }
 }
 

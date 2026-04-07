@@ -1,7 +1,7 @@
+import { RECIPES_ACTION } from './recipes/actions';
+
 export const BACKEND_ACTION = {
-  RECIPES_GET_ALL: 'recipes/getAll',
-  RECIPES_CREATE: 'recipes/create',
-  RECIPES_DELETE: 'recipes/delete',
+  ...RECIPES_ACTION,
 } as const;
 
 export type BackendAction = typeof BACKEND_ACTION[
