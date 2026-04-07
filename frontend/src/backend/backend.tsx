@@ -2,8 +2,8 @@ import { createContext, PropsWithChildren, useCallback, useContext, useEffect, u
 
 import { WorkerClient } from './worker-message-broker';
 import { CreateRecipeDto, Recipe } from '../types';
-import { BACKEND_ACTION } from './actions';
 import { WorkerResponse } from './worker-message-broker';
+import { BACKEND_ACTION } from './actions';
 
 type BackendContext = {
   getRecipes(): Promise<WorkerResponse<Recipe[]>>;
@@ -28,15 +28,15 @@ export function BackendProvider({ children }: PropsWithChildren) {
   const [workerClient, setWorkerClient] = useState<WorkerClient | null>(null);
 
   const getRecipes = useCallback(() => {
-    return workerClient!.request(BACKEND_ACTION.RECIPES_GET_ALL);
+    return workerClient!.request(BACKEND_ACTION.RECIPES.GET_ALL);
   }, [workerClient]);
 
   const createRecipe = useCallback((dto: CreateRecipeDto) => {
-    return workerClient!.request(BACKEND_ACTION.RECIPES_CREATE, dto);
+    return workerClient!.request(BACKEND_ACTION.RECIPES.CREATE, dto);
   }, [workerClient]);
 
   const deleteRecipe = useCallback((recipe: Recipe) => {
-    return workerClient!.request(BACKEND_ACTION.RECIPES_DELETE, recipe);
+    return workerClient!.request(BACKEND_ACTION.RECIPES.DELETE, recipe);
   }, [workerClient]);
 
   const ctxValue = useMemo<BackendContext | null>(() => ({

@@ -1,10 +1,19 @@
 import { Recipe } from '../../types';
-import { recipesMock } from '../recipes.mock';
-import { WorkerRequest, WorkerResponse, createOkWorkerResponse } from '../worker-message-broker';
+import { RecipesDatabaseMock } from '../database.mock';
+import { Logger } from '../logger';
+import { WorkerRequest, WorkerResponder, WorkerResponse, createOkWorkerResponse } from '../worker-message-broker';
+import { RECIPES_ACTION } from './actions';
 
-export const RECIPES_GET_ALL_ACTION = {
-  name: 'recipes/getAll',
-  handle: (request: WorkerRequest<null>): WorkerResponse<Recipe[]> => {
-    return createOkWorkerResponse(request, 'Get all recipes', recipesMock);
-  }
-};
+export const createRecipesGetAllAction = (
+  recipesDb: RecipesDatabaseMock,
+  logger: Logger,
+) => ({
+  action: RECIPES_ACTION.GET_ALL,
+  async handle(
+    req: WorkerRequest,
+    res: WorkerResponder,
+  ): Promise<WorkerResponse<Recipe[]>> {
+    const recipes = await recipesDb.getAll();
+    return res.success('Get all recipes', recipes);
+  },
+});

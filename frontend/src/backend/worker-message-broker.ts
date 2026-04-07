@@ -27,6 +27,22 @@ export type WorkerResponse<T extends any = any> = (
   | WorkerErrorResponse<T>
 );
 
+export type WorkerRequestHandler<
+  TRequest extends any = any,
+  TResponse extends any = any
+> = (
+  req: WorkerRequest<TRequest>,
+  res: WorkerResponder,
+) => Promise<WorkerResponse<TResponse>>;
+
+export type WorkerAction<
+  TRequest extends any = any,
+  TResponse extends any = any
+> = {
+  action: string;
+  handle: WorkerRequestHandler<TRequest, TResponse>;
+};
+
 export function createOkWorkerResponse<
   TRequest extends any = any,
   TResponse extends any = any,
@@ -67,29 +83,38 @@ export function createErrWorkerResponse<
 
 export class WorkerResponder {
 
-  #worker!: DedicatedWorkerGlobalScope;
   #request!: WorkerRequest;
 
-  constructor(
-    worker: DedicatedWorkerGlobalScope,
-    request: WorkerRequest,
-  ) {
-    this.#worker = worker;
+  constructor(request: WorkerRequest) {
     this.#request = request;
   }
 
-  success<T extends any = any>(message: string, data: T): void {
-    const res = createOkWorkerResponse(this.#request, message, data);
-    this.dispatch(res);
+  success<T extends any = any>(
+    message: string,
+    data: T,
+  ): WorkerSuccessResponse<T> {
+    return createOkWorkerResponse(this.#request, message, data);
   }
 
-  error<T extends any = any>(message: string, data: T): void {
-    const res = createErrWorkerResponse(this.#request, message, data);
-    this.dispatch(res);
+  asyncSuccess<T extends any = any>(
+    message: string,
+    data: T,
+  ): Promise<WorkerResponse<T>> {
+    return Promise.resolve(this.success(message, data));
   }
 
-  dispatch<T extends any = any>(response: WorkerResponse<T>) {
-    this.#worker.postMessage(response);
+  error<T extends any = any>(
+    message: string,
+    data: T,
+  ): WorkerErrorResponse<T> {
+    return createErrWorkerResponse(this.#request, message, data);
+  }
+
+  asyncError<T extends any = any>(
+    message: string,
+    data: T,
+  ): Promise<WorkerErrorResponse<T>> {
+    return Promise.resolve(this.error(message, data));
   }
 }
 
