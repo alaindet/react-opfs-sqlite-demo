@@ -4,6 +4,7 @@ import { WorkerClient } from './worker-message-broker';
 import { CreateRecipeDto, Recipe } from '../types';
 import { WorkerResponse } from './worker-message-broker';
 import { BACKEND_ACTION } from './actions';
+import { enforceDataPersistance } from './opfs';
 
 type BackendContext = {
   getRecipes(): Promise<WorkerResponse<Recipe[]>>;
@@ -49,14 +50,20 @@ export function BackendProvider({ children }: PropsWithChildren) {
     createRecipe,
     deleteRecipe,
   ]);
-  
-  useEffect(() => {
-    const worker = new Worker(
-      new URL('./worker.ts', import.meta.url),
-      { type: 'module' },
-    );
-    setWorkerClient(new WorkerClient(worker));
-    return () => worker.terminate();
+
+  useEffect(function setup() {
+    let worker!: Worker;
+
+    (async () => {
+      await enforceDataPersistance();
+      const worker = new Worker(
+        new URL('./worker.ts', import.meta.url),
+        { type: 'module' },
+      );
+      setWorkerClient(new WorkerClient(worker));
+    })();
+
+    return () => worker?.terminate();
   }, []);
 
   if (!workerClient) {

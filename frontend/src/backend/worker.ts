@@ -6,7 +6,8 @@ import { WorkerAction, WorkerRequest, WorkerRequestHandler, WorkerResponder } fr
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
 
-// Dependencies
+// Setup dependencies
+// TODO: Create OPFS abstraction
 const recipesDb = new RecipesDatabaseMock(recipesMock);
 const logger = new ConsoleLogger('Demo');
 
@@ -37,7 +38,7 @@ ctx.onmessage = async (event: MessageEvent<WorkerRequest>) => {
 
   logger.trace('Worker response', res);
   if (res.error) {
-    logger.warn('Worker error response', res);  
+    logger.warn('Worker error response', res);
   }
 
   ctx.postMessage(res);

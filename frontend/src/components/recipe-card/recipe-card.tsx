@@ -17,11 +17,13 @@ export function RecipeCard({
 
   return (
     <div className={style.root}>
-    
-      <RecipeCardImage
-        filename={recipe.imageFilename}
-        title={recipe.title}
-      />
+
+      {recipe.imageFile !== null && (
+        <RecipeCardImage
+          file={recipe.imageFile}
+          title={recipe.title}
+        />
+      )}
 
       <div className={style.content}>
 

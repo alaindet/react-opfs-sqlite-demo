@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { useBackend } from '../../backend/backend';
+import { useBackend } from '../../backend/context';
 import { WorkerErrorResponse } from '../../backend/worker-message-broker';
 import { RecipeForm } from '../../components/recipe-form/recipe-form';
 import { CreateRecipeDto, Recipe } from '../../types';

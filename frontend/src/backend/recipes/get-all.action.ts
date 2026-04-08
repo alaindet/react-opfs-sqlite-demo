@@ -1,7 +1,7 @@
 import { Recipe } from '../../types';
 import { RecipesDatabaseMock } from '../database.mock';
 import { Logger } from '../logger';
-import { WorkerRequest, WorkerResponder, WorkerResponse, createOkWorkerResponse } from '../worker-message-broker';
+import { WorkerRequest, WorkerResponder, WorkerResponse } from '../worker-message-broker';
 import { RECIPES_ACTION } from './actions';
 
 export const createRecipesGetAllAction = (

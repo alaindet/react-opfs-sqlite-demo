@@ -2,7 +2,7 @@ export type Recipe = {
   id: string;
   title: string;
   description: string;
-  imageFilename: string;
+  imageFile: File | null;
   createdAt: number;
 };
 
