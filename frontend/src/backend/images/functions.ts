@@ -1,13 +1,8 @@
-import { deleteFile, fileExists, getDir, readFile, writeDataToFile } from './opfs';
+import { deleteFile, fileExists, readFile, writeDataToFile } from '../opfs';
 
-const IMAGES_DIR = 'images';
-const IMAGE_MAX_DIMENSION = 1200; // px - longest edge
-const IMAGE_QUALITY = 0.8;
-
-export async function getImagesDir(): Promise<FileSystemDirectoryHandle> {
-  const dir = await getDir(IMAGES_DIR);
-  return dir;
-}
+export const IMAGES_DIR = 'images';
+export const IMAGE_MAX_DIMENSION = 1200; // px - longest edge
+export const IMAGE_QUALITY = 0.8;
 
 /** Compresses and stored an image */
 export async function storeImage(

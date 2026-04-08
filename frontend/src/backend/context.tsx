@@ -4,7 +4,7 @@ import { WorkerClient } from './worker-message-broker';
 import { CreateRecipeDto, Recipe } from '../types';
 import { WorkerResponse } from './worker-message-broker';
 import { BACKEND_ACTION } from './actions';
-import { enforceDataPersistance } from './opfs';
+import { enforceDataPersistance } from './opfs/functions';
 
 type BackendContext = {
   getRecipes(): Promise<WorkerResponse<Recipe[]>>;

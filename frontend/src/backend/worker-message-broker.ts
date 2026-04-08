@@ -35,6 +35,8 @@ export type WorkerRequestHandler<
   res: WorkerResponder,
 ) => Promise<WorkerResponse<TResponse>>;
 
+export type WorkerRequestRouter = Map<string, WorkerRequestHandler>;
+
 export type WorkerAction<
   TRequest extends any = any,
   TResponse extends any = any

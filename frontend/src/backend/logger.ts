@@ -23,11 +23,11 @@ export type Logger = {
 };
 
 export class ConsoleLogger {
-  #name!: string;
+  name!: string;
   #allowedLevels!: Set<LoggerLevel>;
 
   constructor(name: string, minLevel?: LoggerLevel) {
-    this.#name = name;
+    this.name = name;
     this.#allowedLevels = this.#parseMinLevel(minLevel);
   }
 
@@ -60,7 +60,7 @@ export class ConsoleLogger {
       return;
     }
 
-    const logMessage = `[${this.#name}][${level.toUpperCase()}] ${message}`;
+    const logMessage = `[${this.name}][${level.toUpperCase()}] ${message}`;
     console.log(logMessage, data);
   }
 

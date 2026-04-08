@@ -3,23 +3,54 @@
  * an array of path segments
  */
 export async function getDir(
-  path: string | string[],
+  path?: string | string[],
 ): Promise<FileSystemDirectoryHandle> {
   let dir = await navigator.storage.getDirectory();
 
+  // Root (no path)
+  if (dir === undefined) {
+    return dir;
+  }
+
+  // Simple path
   if (typeof path === 'string' && path.indexOf('/') === -1) {
     return dir.getDirectoryHandle(path, { create: true });
   }
 
+  // Path segments
   const segments = (typeof path === 'string' && path.indexOf('/') !== -1)
     ? path.split('/')
-    : path;
+    : (path as string[]);
 
   for (const segment of segments) {
     dir = await dir.getDirectoryHandle(segment, { create: true });
   }
 
   return dir;
+}
+
+export async function getRelativeDir(
+  dirHandle: FileSystemDirectoryHandle,
+  path: string | string[],
+): Promise<FileSystemDirectoryHandle> {
+
+  // Simple path
+  if (typeof path === 'string' && path.indexOf('/') === -1) {
+    return dirHandle.getDirectoryHandle(path, { create: true });
+  }
+
+  let temp = dirHandle;
+
+  // Path segments
+  const segments = (typeof path === 'string' && path.indexOf('/') !== -1)
+    ? path.split('/')
+    : (path as string[]);
+
+  for (const segment of segments) {
+    temp = await temp.getDirectoryHandle(segment, { create: true });
+  }
+
+  return temp;
 }
 
 /** Enforces data persistance of the OPFS */

@@ -1,21 +1,25 @@
 import { CreateRecipeDto, Recipe } from '../../types';
 import { RecipesDatabaseMock } from '../database.mock';
-import { getImagesDir, storeImage } from '../images';
+import { IMAGE_MAX_DIMENSION, IMAGE_QUALITY, ImagesController } from '../images';
 import { Logger } from '../logger';
-import { WorkerRequest, WorkerResponder } from '../worker-message-broker';
+import { WorkerErrorResponse, WorkerRequest, WorkerResponder, WorkerSuccessResponse } from '../worker-message-broker';
 import { RECIPES_ACTION } from './actions';
 
 export const createRecipesCreateAction = (
-  recipesDb: RecipesDatabaseMock,
+  db: RecipesDatabaseMock,
+  images: ImagesController,
   logger: Logger,
 ) => ({
   action: RECIPES_ACTION.CREATE,
   async handle(
-    req: WorkerRequest,
+    req: WorkerRequest<CreateRecipeDto>,
     res: WorkerResponder,
-  ) {
-    const dto = req.data as CreateRecipeDto;
-    const existing = await recipesDb.getByTitle(dto.title);
+  ): Promise<(
+    | WorkerSuccessResponse<Recipe>
+    | WorkerErrorResponse
+  )> {
+    const dto = req.data;
+    const existing = await db.getByTitle(dto.title);
 
     if (existing) {
       const message = `A recipe with title "${dto.title}" already exists`;
@@ -25,8 +29,11 @@ export const createRecipesCreateAction = (
     // Sync the fs
     let imageFile!: File;
     try {
-      const imagesDir = await getImagesDir();
-      imageFile = await storeImage(imagesDir, dto.imageFile.name, dto.imageFile);
+      imageFile = await images.saveImage(
+        dto.imageFile.name,
+        dto.imageFile,
+        { maxSize: IMAGE_MAX_DIMENSION, quality: IMAGE_QUALITY },
+      );
     } catch (error) {
       const message = 'Cannot store image';
       const data = { error, filename: dto.imageFile.name };
@@ -44,7 +51,7 @@ export const createRecipesCreateAction = (
     };
 
     try {
-      await recipesDb.create(recipe);
+      await db.create(recipe);
     } catch (error) {
       const message = 'Cannot save recipe into database';
       const data = { error, recipe };

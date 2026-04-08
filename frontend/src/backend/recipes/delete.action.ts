@@ -1,11 +1,13 @@
 import { Recipe } from '../../types';
 import { RecipesDatabaseMock } from '../database.mock';
+import { ImagesController } from '../images';
 import { Logger } from '../logger';
 import { WorkerRequest, WorkerResponder } from '../worker-message-broker';
 import { RECIPES_ACTION } from './actions';
 
 export const createRecipesDeleteAction = (
-  recipesDb: RecipesDatabaseMock,
+  db: RecipesDatabaseMock,
+  images: ImagesController,
   logger: Logger,
 ) => ({
   action: RECIPES_ACTION.DELETE,
@@ -15,15 +17,19 @@ export const createRecipesDeleteAction = (
   ) {
     const recipe = req.data;
     const recipeId = recipe.id;
-    const existing = await recipesDb.getById(recipeId);
+    const existing = await db.getById(recipeId);
 
     if (!existing) {
       return res.error(`Recipe with ID ${recipeId} not found`, { id: recipeId });
     }
 
-    await recipesDb.deleteById(recipeId);
+    // Sync the db
+    await db.deleteById(recipeId);
 
-    // TODO: Remove the image
+    // Sync the fs
+    if (recipe.imageFile) {
+      await images.deleteImage(recipe.imageFile.name);
+    }
 
     return res.success(`Recipe "${recipe.title}" deleted`, recipe);
   },
