@@ -4,20 +4,24 @@
  * WARNING: This must run inside a dedicated Web Worker since SQLite's OpfsDb
  * needs synchronous access to OPFS
  */
+import sqlite3InitModule, { Database } from '@sqlite.org/sqlite-wasm';
+
 import { Logger } from '../logger';
-import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
 
-let db: any; // sqlite3.oo1.OpfsDb | sqlite3.oo1.DB
+let db: Database | null = null;
 
-export async function getDatabase() {
+export function getDatabase(): Database {
   if (!db) {
     throw new Error('SQLite initialization error: call initDatabase() first');
   }
   return db;
 }
 
-export async function initDatabase(logger: Logger, dbPath: string) {
-  let db!: any;
+export async function initDatabase(
+  logger: Logger,
+  dbPath: string,
+): Promise<Database> {
+  let db!: Database;
 
   // Initialize SQLite library
   logger.trace('[SQLite] Initializing SQLite library');
@@ -35,17 +39,6 @@ export async function initDatabase(logger: Logger, dbPath: string) {
     db = new sqlite3.oo1.DB(dbPath, 'ct');
     logger.trace('[SQLite] OPFS unavailable, database is in-memory');
   }
-
-  // TODO: Run schema and seeders?
-  // db.exec(`
-  //   CREATE TABLE IF NOT EXISTS recipes (
-  //     id            INTEGER PRIMARY KEY AUTOINCREMENT,
-  //     title         TEXT    NOT NULL,
-  //     description   TEXT    NOT NULL DEFAULT '',
-  //     image_filename TEXT,
-  //     created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
-  //   );
-  // `);
 
   logger.trace('[SQLite] Database initialized');
   return db;

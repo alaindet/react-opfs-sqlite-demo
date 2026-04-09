@@ -6,6 +6,14 @@ export type Recipe = {
   createdAt: number;
 };
 
+export type RecipeDatabaseRow = {
+  id: number;
+  title: string;
+  description: string;
+  image_filename: string;
+  created_at: string;
+};
+
 export type CreateRecipeDto = {
   title: string;
   description: string;
