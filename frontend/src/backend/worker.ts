@@ -1,4 +1,5 @@
 import { RecipesDatabaseMock } from './database.mock';
+import { initDatabase } from './database/database';
 import { IMAGES_DIR, ImagesController } from './images';
 import { ConsoleLogger } from './logger';
 import { OpfsDirectoryController } from './opfs/dir.controller';
@@ -59,9 +60,10 @@ async function handleRequest(req: WorkerRequest) {
 
 (async function init() {
 
-  logger.info('Bootstrapping');
+  logger.trace('Bootstrapping');
 
   // Init dependencies
+  const __db__ = await initDatabase(logger, '/db.sqlite3'); // TODO
   db = new RecipesDatabaseMock(recipesMock);
   fs = await OpfsDirectoryController.fromRoot();
   images = await ImagesController.fromPath(fs, IMAGES_DIR);
@@ -74,7 +76,7 @@ async function handleRequest(req: WorkerRequest) {
 
   // Change worker state to catching up
   workerState = WORKER_STATE.CATCHING_UP;
-  logger.info('Bootstrapped. Catching up');
+  logger.trace('Bootstrapped. Catching up');
 
   // This is critical: it solves pending requests recursively until there's some
   // idle moment, then switches to running state
@@ -90,5 +92,5 @@ async function handleRequest(req: WorkerRequest) {
 
   // Change worker state to running
   workerState = WORKER_STATE.RUNNING;
-  logger.info('Running');
+  logger.trace('Running');
 })();
