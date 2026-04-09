@@ -45,6 +45,16 @@ export type WorkerAction<
   handle: WorkerRequestHandler<TRequest, TResponse>;
 };
 
+export const WORKER_STATE = {
+  BOOTSTRAPPING: 'bootstrapping',
+  CATCHING_UP: 'catchingup',
+  RUNNING: 'running',
+} as const;
+
+export type WorkerState = typeof WORKER_STATE[
+  keyof typeof WORKER_STATE
+];
+
 export function createOkWorkerResponse<
   TRequest extends any = any,
   TResponse extends any = any,

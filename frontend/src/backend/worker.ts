@@ -4,12 +4,11 @@ import { ConsoleLogger } from './logger';
 import { OpfsDirectoryController } from './opfs/dir.controller';
 import { recipesMock } from './recipes.mock';
 import { createRecipesActions } from './recipes/routes';
-import { WorkerRequest, WorkerRequestHandler, WorkerRequestRouter, WorkerResponder } from './worker-message-broker';
+import { WorkerRequest, WorkerRequestHandler, WorkerRequestRouter, WorkerResponder, WorkerState, WORKER_STATE } from './worker-message-broker';
 
 // State
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
-let ready = false;
-let startingUp = false;
+let workerState: WorkerState = WORKER_STATE.BOOTSTRAPPING;
 let pendingRequests: WorkerRequest[] = [];
 
 // Dependencies
@@ -19,59 +18,77 @@ let db!: RecipesDatabaseMock;
 let fs!: OpfsDirectoryController;
 let images!: ImagesController;
 
-// TODO: Replace the message handler after initialization
-// Bootstrap
 ctx.onmessage = async (event: MessageEvent<WorkerRequest>) => {
+  const request = event.data;
+  logger.trace('Request', request);
 
-  // Pile up pending requests while initializing
-  if (!ready && !startingUp) {
-    pendingRequests.push(event.data);
-    return;
+  switch (workerState) {
+    case WORKER_STATE.BOOTSTRAPPING:
+    case WORKER_STATE.CATCHING_UP:
+      pendingRequests.push(request);
+      logger.trace('Enqueueing request', request);
+      break;
+
+    case WORKER_STATE.RUNNING:
+      handleRequest(request);
+      break;
   }
-
-  // Resolve pending requests
-  if (ready && startingUp) {
-    for (const req of pendingRequests) {
-      await handleRequest(req);
-    }
-    startingUp = false;
-  }
-
-  // Handle the request normally
-  handleRequest(event.data);
 };
 
-await init();
-ready = true;
-startingUp = true;
-logger.info(`${logger.name} started`);
-
 async function handleRequest(req: WorkerRequest) {
-  logger.trace('Worker request', req);
   const handler = router.get(req.action);
 
   if (!handler) {
-    logger.error('Missing worker action handler', { action: req.action });
+    logger.error('Not found: Missing action handler', { action: req.action });
     return;
   }
 
   const responder = new WorkerResponder(req);
-  const res = await handler(req, responder);
 
-  logger.trace('Worker response', res);
-  if (res.error) {
-    logger.warn('Worker error response', res);
+  try {
+    const res = await handler(req, responder);
+    logger.trace('Response', res);
+    if (res.error) logger.warn('Error response', res);
+    ctx.postMessage(res);
+  } catch (err) {
+    logger.error('Unhandled error in handler', { action: req.action, err });
+    const res = responder.error('Internal error', { req, err });
+    ctx.postMessage(res);
   }
-
-  ctx.postMessage(res);
 }
 
-async function init() {
+(async function init() {
+
+  logger.info('Bootstrapping');
+
+  // Init dependencies
   db = new RecipesDatabaseMock(recipesMock);
   fs = await OpfsDirectoryController.fromRoot();
   images = await ImagesController.fromPath(fs, IMAGES_DIR);
+
+  // Init router
   router = new Map<string, WorkerRequestHandler>([
     ...createRecipesActions(db, images, logger),
     // Add action handlers here...
   ].map(route => [route.action, route.handle]));
-}
+
+  // Change worker state to catching up
+  workerState = WORKER_STATE.CATCHING_UP;
+  logger.info('Bootstrapped. Catching up');
+
+  // This is critical: it solves pending requests recursively until there's some
+  // idle moment, then switches to running state
+  while (pendingRequests.length > 0) {
+    const batch = pendingRequests;
+    pendingRequests = [];
+
+    for (const req of batch) {
+      logger.trace('Catching up request', req);
+      await handleRequest(req);
+    }
+  }
+
+  // Change worker state to running
+  workerState = WORKER_STATE.RUNNING;
+  logger.info('Running');
+})();

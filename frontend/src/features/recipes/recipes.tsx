@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { useBackend } from '../../backend/context';
+import { backend } from '../../backend/backend';
 import { WorkerErrorResponse } from '../../backend/worker-message-broker';
 import { RecipeForm } from '../../components/recipe-form/recipe-form';
 import { CreateRecipeDto, Recipe } from '../../types';
 import { RecipesList } from './recipes-list';
 
 export function RecipesPage() {
-  const backend = useBackend();
   const [recipes, setRecipes] = useState<Recipe[] | null>(null);
   const [recipesError, setRecipesError] = useState<string | null>(null);
   const [recipesLoading, setRecipesLoading] = useState(false);
