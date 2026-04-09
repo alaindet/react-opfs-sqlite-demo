@@ -97,7 +97,7 @@ export async function readFile(
   filename: string,
 ): Promise<File> {
   const fileHandle = await dirHandle.getFileHandle(filename);
-  const file = fileHandle.getFile();
+  const file = await fileHandle.getFile();
   return file;
 }
 

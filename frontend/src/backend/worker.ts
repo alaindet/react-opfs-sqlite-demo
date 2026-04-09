@@ -5,6 +5,7 @@ import { IMAGES_DIR, ImagesController } from './images';
 import { ConsoleLogger } from './logger';
 import { OpfsDirectoryController } from './opfs/dir.controller';
 import { recipesMock } from './recipes.mock';
+import { RecipesRepository } from './recipes/recipes.repository';
 import { createRecipesActions } from './recipes/routes';
 import { WorkerRequest, WorkerRequestHandler, WorkerRequestRouter, WorkerResponder, WorkerState, WORKER_STATE } from './worker-message-broker';
 
@@ -64,21 +65,13 @@ async function handleRequest(req: WorkerRequest) {
   logger.trace('Bootstrapping');
 
   // Init dependencies
-  const db = await initDatabase(logger, '/db.sqlite3'); // TODO
+  const db = await initDatabase(logger, '/db.sqlite3');
   await seedDatabase(db);
-
-  const rows = db.exec({
-    sql: 'SELECT * FROM recipes WHERE id = ?',
-    bind: [2],
-    returnValue: 'resultRows',
-  });
-
-  // TODO: Remove
-  console.log('demo SQL query', rows);
-
   recipesRepo = new RecipesDatabaseMock(recipesMock);
   fs = await OpfsDirectoryController.fromRoot();
   images = await ImagesController.fromPath(fs, IMAGES_DIR);
+  const repo = new RecipesRepository(db, images);
+  repo.getById(1);
 
   // Init router
   router = new Map<string, WorkerRequestHandler>([

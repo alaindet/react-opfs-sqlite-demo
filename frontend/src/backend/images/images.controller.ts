@@ -3,10 +3,10 @@ import { IMAGE_MAX_DIMENSION, IMAGE_QUALITY } from './functions';
 
 export class ImagesController {
 
-  dir!: OpfsDirectoryController;
+  #dir!: OpfsDirectoryController;
 
   constructor(dir: OpfsDirectoryController) {
-    this.dir = dir;
+    this.#dir = dir;
   }
 
   static async fromPath(
@@ -15,6 +15,14 @@ export class ImagesController {
   ): Promise<ImagesController> {
     const subdir = await dir.getDir(path);
     return new ImagesController(subdir);
+  }
+
+  get dirController(): OpfsDirectoryController {
+    return this.#dir;
+  }
+  
+  get dirHandle(): FileSystemDirectoryHandle {
+    return this.#dir.dirHandle;
   }
 
   /**
@@ -58,20 +66,20 @@ export class ImagesController {
     // Store image
     const ext = blob.type === 'image/webp' ? 'webp' : 'jpg';
     const fullFilename = `${stripFileExtension(filename)}.${ext}`;
-    await this.dir.writeDataToFile(fullFilename, blob);
+    await this.#dir.writeDataToFile(fullFilename, blob);
 
     // Return a synthetic file from blob
     // return new File([blob], fullFilename, { type: blob.type });
 
     // Re-read the file from the OPFS
-    return this.dir.readFile(fullFilename);
+    return this.#dir.readFile(fullFilename);
   }
 
   async readImage(filename: string): Promise<File> {
-    return this.dir.readFile(filename);
+    return this.#dir.readFile(filename);
   }
 
   async deleteImage(filename: string): Promise<void> {
-    return this.dir.deleteFile(filename);
+    return this.#dir.deleteFile(filename);
   }
 }

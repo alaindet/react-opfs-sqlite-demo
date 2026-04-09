@@ -20,6 +20,10 @@ export class OpfsDirectoryController {
     return new OpfsDirectoryController(dirHandle);
   }
 
+  get dirHandle(): FileSystemDirectoryHandle {
+    return this.#dirHandle;
+  }
+
   async getDir(path: string | string[]): Promise<OpfsDirectoryController> {
     const dir = await getRelativeDir(this.#dirHandle, path);
     return new OpfsDirectoryController(dir);
