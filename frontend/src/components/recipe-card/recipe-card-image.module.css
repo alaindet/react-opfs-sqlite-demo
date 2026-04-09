@@ -15,9 +15,3 @@
   object-fit: fill;
   max-height: 150px;
 }
-
-.placeholderText {
-  padding: 2rem;
-  color: #aaaaaa;
-  font-size: 0.875rem;
-}

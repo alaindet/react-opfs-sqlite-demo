@@ -25,7 +25,7 @@ export function RecipeCardImage({
 
   return (
     <div className={style.root}>
-      <img src={imageSource} alt={title} />
+      <img src={imageSource} alt={title} className={style.image} />
     </div>
   );
 }

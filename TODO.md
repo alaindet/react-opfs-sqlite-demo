@@ -1,0 +1,4 @@
+- [ ] Add SQLite 3
+- [ ] Add seeder
+- [ ] Mode backend to "backend" package
+- [ ] Add import/export data feature

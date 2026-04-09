@@ -1,4 +1,4 @@
-import { OpfsDirectoryController } from '../opfs';
+import { OpfsDirectoryController, stripFileExtension } from '../opfs';
 import { IMAGE_MAX_DIMENSION, IMAGE_QUALITY } from './functions';
 
 export class ImagesController {
@@ -57,7 +57,7 @@ export class ImagesController {
 
     // Store image
     const ext = blob.type === 'image/webp' ? 'webp' : 'jpg';
-    const fullFilename = `${filename}.${ext}`;
+    const fullFilename = `${stripFileExtension(filename)}.${ext}`;
     await this.dir.writeDataToFile(fullFilename, blob);
 
     // Return a synthetic file from blob

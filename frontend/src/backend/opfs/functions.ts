@@ -142,3 +142,11 @@ export async function fileExists(
     throw err;
   }
 }
+/**
+ * The "file extension" is strictly the last segment post-dot
+ * Known constraint: this ignores extensions like .tar.gz
+ */
+export function stripFileExtension(filename: string): string {
+  const lastDotIndex = filename.lastIndexOf('.');
+  return filename.slice(0, lastDotIndex);
+}
