@@ -1,12 +1,9 @@
-import { RecipesDatabaseMock } from './database.mock';
 import { initDatabase } from './database/database';
 import { seedDatabase } from './database/seed';
 import { IMAGES_DIR, ImagesController } from './images';
 import { ConsoleLogger } from './logger';
 import { OpfsDirectoryController } from './opfs/dir.controller';
-import { recipesMock } from './recipes.mock';
-import { RecipesRepository } from './recipes/recipes.repository';
-import { createRecipesActions } from './recipes/routes';
+import { recipesRoutes } from './recipes/routes';
 import { WorkerRequest, WorkerRequestHandler, WorkerRequestRouter, WorkerResponder, WorkerState, WORKER_STATE } from './worker-message-broker';
 
 // State
@@ -17,7 +14,6 @@ let pendingRequests: WorkerRequest[] = [];
 // Dependencies
 const logger = new ConsoleLogger('Backend');
 let router!: WorkerRequestRouter;
-let recipesRepo!: RecipesDatabaseMock;
 let fs!: OpfsDirectoryController;
 let images!: ImagesController;
 
@@ -65,30 +61,20 @@ async function handleRequest(req: WorkerRequest) {
   logger.trace('Bootstrapping');
 
   // Init dependencies
-
-  // TODO: Remove
-  recipesRepo = new RecipesDatabaseMock(recipesMock);
-
   fs = await OpfsDirectoryController.fromRoot();
 
-  // // TODO: Remove
+  // TODO: Remove
   await fs.empty();
   logger.debug('Cleared all data');
 
   images = await ImagesController.fromPath(fs, IMAGES_DIR);
-
   const db = await initDatabase(logger, '/db.sqlite3');
   await seedDatabase(db);
-  const repo = new RecipesRepository(logger, db, images);
-
-  // TODO: Remove
-  const recipes = await repo.getAll();
-  logger.debug('recipes', recipes);
 
   // Init router
   router = new Map<string, WorkerRequestHandler>([
-    ...createRecipesActions(recipesRepo, images, logger),
-    // Add action handlers here...
+    ...recipesRoutes(logger, db, images),
+    // Add routes here...
   ].map(route => [route.action, route.handle]));
 
   // Change worker state to catching up

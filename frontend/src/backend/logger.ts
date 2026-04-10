@@ -14,6 +14,7 @@ export type LoggerLevel = typeof LOGGER_LEVEL[
 export type LoggerMethod = (message: string, data?: Record<string, any>) => void;
 
 export type Logger = {
+  createScopedLogger(name: string): Logger;
   fatal(message: string, data?: Record<string, any>): void;
   error(message: string, data?: Record<string, any>): void;
   warn(message: string, data?: Record<string, any>): void;
@@ -29,6 +30,10 @@ export class ConsoleLogger {
   constructor(name: string, minLevel?: LoggerLevel) {
     this.name = name;
     this.#allowedLevels = this.#parseMinLevel(minLevel);
+  }
+
+  createScopedLogger(name: string): ConsoleLogger {
+    return new ConsoleLogger(`${this.name}/${name}`);
   }
 
   fatal(message: string, data?: Record<string, any>): void {

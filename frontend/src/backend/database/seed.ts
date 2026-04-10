@@ -5,5 +5,5 @@ import { recipesSeed } from './recipes.seed.sql';
 
 export async function seedDatabase(db: Database): Promise<void> {
   db.exec(DB_SCHEMA);
-  db.exec(recipesSeed);
+  // db.exec(recipesSeed);
 }

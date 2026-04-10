@@ -18,28 +18,29 @@ export function getDatabase(): Database {
 }
 
 export async function initDatabase(
-  logger: Logger,
+  _logger: Logger,
   dbPath: string,
 ): Promise<Database> {
   let db!: Database;
+  const logger = _logger.createScopedLogger('SQLite');
 
   // Initialize SQLite library
-  logger.trace('[SQLite] Initializing SQLite library');
+  logger.trace('Initializing SQLite library');
   const sqlite3 = await sqlite3InitModule({
     print: logger.trace,
     printErr: logger.error,
   });
 
   // Initialize database from file and/or create it
-  logger.trace('[SQLite] Initializing SQLite database from OPFS');
+  logger.trace('Initializing SQLite database from OPFS');
   if ('opfs' in sqlite3) {
     db = new sqlite3.oo1.OpfsDb(dbPath);
-    logger.trace('[SQLite] OPFS available, database persisted', { path: db.filename });
+    logger.trace('OPFS available, database persisted', { path: db.filename });
   } else {
     db = new sqlite3.oo1.DB(dbPath, 'ct');
-    logger.trace('[SQLite] OPFS unavailable, database is in-memory');
+    logger.trace('OPFS unavailable, database is in-memory');
   }
 
-  logger.trace('[SQLite] Database initialized');
+  logger.trace('Database initialized');
   return db;
 }
