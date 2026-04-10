@@ -1,4 +1,5 @@
-- [ ] Add SQLite 3
+- [x] Add SQLite 3
+- [ ] Separate the Recipes SQL repository from the OPFS and mapper
 - [ ] Add seeder
 - [ ] Mode backend to "backend" package
 - [ ] Add import/export data feature

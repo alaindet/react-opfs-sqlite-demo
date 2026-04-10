@@ -17,5 +17,11 @@ export type RecipeDatabaseRow = [
 export type CreateRecipeDto = {
   title: string;
   description: string;
-  imageFile: File;
+  imageFile: File | null;
+};
+
+export type CreateRecipeDatabaseRow = {
+  title: string;
+  description: string;
+  imageFilename: string | null;
 };

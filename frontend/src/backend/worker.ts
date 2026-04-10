@@ -65,13 +65,25 @@ async function handleRequest(req: WorkerRequest) {
   logger.trace('Bootstrapping');
 
   // Init dependencies
+
+  // TODO: Remove
+  recipesRepo = new RecipesDatabaseMock(recipesMock);
+
+  fs = await OpfsDirectoryController.fromRoot();
+
+  // // TODO: Remove
+  await fs.empty();
+  logger.debug('Cleared all data');
+
+  images = await ImagesController.fromPath(fs, IMAGES_DIR);
+
   const db = await initDatabase(logger, '/db.sqlite3');
   await seedDatabase(db);
-  recipesRepo = new RecipesDatabaseMock(recipesMock);
-  fs = await OpfsDirectoryController.fromRoot();
-  images = await ImagesController.fromPath(fs, IMAGES_DIR);
-  const repo = new RecipesRepository(db, images);
-  repo.getById(1);
+  const repo = new RecipesRepository(logger, db, images);
+
+  // TODO: Remove
+  const recipes = await repo.getAll();
+  logger.debug('recipes', recipes);
 
   // Init router
   router = new Map<string, WorkerRequestHandler>([
