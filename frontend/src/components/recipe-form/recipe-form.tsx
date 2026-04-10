@@ -1,4 +1,4 @@
-import { ChangeEvent, SubmitEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { ChangeEvent, SubmitEvent, useCallback, useRef, useState } from 'react';
 import clsx from 'clsx';
 
 import { CreateRecipeDto } from '../../types';
@@ -136,11 +136,7 @@ export function RecipeForm({
         isCollapsed ? style['--collapsed'] : null,
       )}>
         {/* Button: Submit */}
-        <button
-          type="submit"
-          disabled={isLoading}
-          className={style.button}
-        >
+        <button type="submit" disabled={isLoading}>
           Add Recipe
         </button>
       </div>

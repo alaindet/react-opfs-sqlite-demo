@@ -1,0 +1,37 @@
+.navigation {
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.links {
+  display: flex;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.link {
+  position: relative;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+}
+
+.link:hover {
+  background-color: #ddd !important;
+}
+
+.link a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.link:has(.active) {
+  background-color: #e8e8e8;
+}
+
+.active {
+  font-weight: bold;
+}

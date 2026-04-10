@@ -80,21 +80,3 @@
   justify-content: flex-end;
   padding: 1rem;
 }
-
-.button {
-  padding: 0.625rem 1rem;
-  background-color: #22aa77;
-  color: #ffffff;
-  border-radius: 0.25rem;
-  cursor: pointer;
-  border: 0;
-  transition: 0.15s all ease-in-out;
-}
-
-.button[disabled] {
-  opacity: 0.5;
-}
-
-.button:hover {
-  background-color: #1d9167;
-}

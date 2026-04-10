@@ -2,7 +2,7 @@ import { RouteObject } from 'react-router';
 
 import { App } from './App';
 import { RecipesPage } from './features/recipes/recipes';
-import { DatabasePage } from './features/database/database';
+import { BackupPage } from './features/backup/backup';
 
 export default [
   {
@@ -14,8 +14,8 @@ export default [
         Component: RecipesPage,
       },
       {
-        path: 'database',
-        Component: DatabasePage,
+        path: 'backup',
+        Component: BackupPage,
       },
     ],
   },

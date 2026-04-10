@@ -5,19 +5,30 @@ import { WorkerClient, WorkerResponse } from './worker-message-broker';
 
 const workerUrl = new URL('./worker.ts', import.meta.url);
 const worker = new Worker(workerUrl, { type: 'module' });
-const workerClient = new WorkerClient(worker);
+const w = new WorkerClient(worker);
 
 enforceDataPersistance();
 
-// TODO: Refactor
 export const backend = {
-  getRecipes: (): Promise<WorkerResponse<Recipe[]>> => {
-    return workerClient.request(BACKEND_ACTION.RECIPES.GET_ALL);
+  recipes: {
+    getAll(): Promise<WorkerResponse<Recipe[]>> {
+      return w.request(BACKEND_ACTION.RECIPES.GET_ALL);
+    },
+    create(dto: CreateRecipeDto): Promise<WorkerResponse<Recipe>> {
+      return w.request(BACKEND_ACTION.RECIPES.CREATE, dto);
+    },
+    delete(recipe: Recipe): Promise<WorkerResponse<Recipe>> {
+      return w.request(BACKEND_ACTION.RECIPES.DELETE, recipe);
+    },
   },
-  createRecipe: (dto: CreateRecipeDto): Promise<WorkerResponse<Recipe>> => {
-    return workerClient.request(BACKEND_ACTION.RECIPES.CREATE, dto);
-  },
-  deleteRecipe: (recipe: Recipe): Promise<WorkerResponse<Recipe>> => {
-    return workerClient.request(BACKEND_ACTION.RECIPES.DELETE, recipe);
+  backup: {
+    // TODO: Type
+    download(): Promise<WorkerResponse<any>> {
+      return w.request(BACKEND_ACTION.BACKUP.DOWNLOAD);
+    },
+    // TODO: Type
+    restore(restoreFile: File): Promise<WorkerResponse<any>> {
+      return w.request(BACKEND_ACTION.BACKUP.RESTORE, restoreFile);
+    },
   },
 };

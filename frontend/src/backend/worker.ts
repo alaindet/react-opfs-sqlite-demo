@@ -1,3 +1,4 @@
+import { backupRoutes } from './backup/routes';
 import { initDatabase } from './database/database';
 import { seedDatabase } from './database/seed';
 import { IMAGES_DIR, ImagesController } from './images';
@@ -74,6 +75,7 @@ async function handleRequest(req: WorkerRequest) {
   // Init router
   router = new Map<string, WorkerRequestHandler>([
     ...recipesRoutes(logger, db, images),
+    ...backupRoutes(logger, db, images),
     // Add routes here...
   ].map(route => [route.action, route.handle]));
 

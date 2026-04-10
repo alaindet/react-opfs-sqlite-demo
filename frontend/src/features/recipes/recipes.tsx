@@ -18,7 +18,7 @@ export function RecipesPage() {
       return;
     }
     try {
-      await backend.deleteRecipe(recipe);
+      await backend.recipes.delete(recipe);
       loadRecipes();
     } catch (err) {
       alert((err as WorkerErrorResponse).message);
@@ -27,7 +27,7 @@ export function RecipesPage() {
 
   const handleCreateRecipe = useCallback(async (dto: CreateRecipeDto) => {
     try {
-      await backend.createRecipe(dto);
+      await backend.recipes.create(dto);
       loadRecipes();
     } catch (err) {
       alert((err as WorkerErrorResponse).message);
@@ -40,7 +40,7 @@ export function RecipesPage() {
 
   async function loadRecipes() {
     setRecipesLoading(true);
-    const res = await backend.getRecipes();
+    const res = await backend.recipes.getAll();
     setRecipes(res.data);
     setRecipesLoading(false);
   }
