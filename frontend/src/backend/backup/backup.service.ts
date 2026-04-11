@@ -47,33 +47,78 @@ export class BackupService {
 
   async import(data: ArrayBuffer): Promise<void> {
     const zip = await JSZip.loadAsync(data);
-    const extractedDbFile = zip.file(DATABASE_FILENAME);
 
+    // Extract the database file from the archive
+    const extractedDbFile = zip.file(DATABASE_FILENAME);
     if (!extractedDbFile) {
       const message = 'No database file found in zip';
       this.#logger.error(message);
       throw new Error(message);
     }
 
+    // Close the existing database
     this.#db.close();
-    const dbData = await extractedDbFile.async('arraybuffer');
+
+    // Open the new database connection
     const sqlite3 = await sqlite3InitModule({
       print: this.#logger.trace,
       printErr: this.#logger.error,
     });
 
+    // ERROR: OPFS not available
     if (!('opfs' in sqlite3)) {
       const message = 'OPFS not available, cannot import database';
       this.#logger.error(message);
       throw new Error(message);
     }
 
+    // Import the database data
+    const dbData = await extractedDbFile.async('arraybuffer');
     await sqlite3.oo1.OpfsDb.importDb(
       `/${DATABASE_FILENAME}`,
       new Uint8Array(dbData),
     );
 
-    // TODO
+    // Remove all existing images
+    await this.#fs.safeDeleteDir(IMAGES_DIR);
+
+    const extractedImagesDir = zip.folder(IMAGES_DIR);
+
+    // ERROR: If no images to import
+    if (!extractedImagesDir) {
+      const message = 'No images to import found';
+      this.#logger.error(message);
+      throw new Error(message);
+    }
+
+    const imageFiles: FileRestored[] = [];
+
+    extractedImagesDir.forEach((name, imageFile) => {
+      if (!imageFile.dir) {
+        const data$ = imageFile.async('arraybuffer');
+        imageFiles.push({ name, data$ });
+      }
+    });
+
+    const imagesDir = await this.#fs.dirHandle.getDirectoryHandle(IMAGES_DIR);
+
+    // TODO: Remove
+    this.#logger.debug('DEV', { extractedImagesDir, imagesDir });
+
+    // // Write extracted images into the OPFS
+    // for await (const { name, data$ } of imageFiles) {
+    //   const buffer = await data$;
+    //   const data = new Uint8Array(buffer);
+    //   const fileHandle = await imagesDir.getFileHandle(name, { create: true });
+    //   const accessHandle = await fileHandle.createSyncAccessHandle();
+    //   try {
+    //     accessHandle.write(data, { at: 0 });
+    //     accessHandle.truncate(data.byteLength);
+    //     accessHandle.flush();
+    //   } finally {
+    //     accessHandle.close();
+    //   }
+    // }
   }
 
   #getDbReport(bytesLength: number): string {
@@ -119,4 +164,9 @@ export class BackupService {
 type FileBackup = {
   name: string;
   data: ArrayBuffer;
+};
+
+type FileRestored = {
+  name: string;
+  data$: Promise<ArrayBuffer>;
 };

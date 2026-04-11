@@ -4,3 +4,4 @@
 - [ ] Move backend to "backend" package
 - [ ] Add import/export data feature
 - [ ] How to download a stream for large database
+- [ ] const stream = file.stream(); worker.postMessage({ stream }, [stream]);

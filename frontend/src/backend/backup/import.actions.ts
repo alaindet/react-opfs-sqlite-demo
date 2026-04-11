@@ -10,14 +10,21 @@ export const createBackupImportAction = (
 ) => ({
   action: BACKUP_ACTION.IMPORT,
   async handle(
-    req: WorkerRequest,
+    req: WorkerRequest<File>,
     res: WorkerResponder,
   ): Promise<(
     | WorkerSuccessResponse
     | WorkerErrorResponse
   )> {
-    // TODO: Check if given a zip file
 
-    return res.asyncSuccess('Imported all data', '');
+    if (req.data.type !== 'application/zip') {
+      const message = 'Uploaded file must be a .zip file';
+      logger.error(message);
+      return res.error(message, { fileType: req.data.type });
+    }
+
+    const zipBuffer = await req.data.arrayBuffer();
+    await service.import(zipBuffer);
+    return res.success('Imported all data', null);
   },
 });

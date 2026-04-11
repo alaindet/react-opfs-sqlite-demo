@@ -153,6 +153,23 @@ export async function fileExists(
     throw err;
   }
 }
+
+export async function dirExists(
+  dirHandle: FileSystemDirectoryHandle,
+  filename: string,
+): Promise<boolean> {
+  try {
+    await dirHandle.getDirectoryHandle(filename, { create: false });
+    return true;
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'NotFoundError') {
+      return false;
+    }
+
+    throw err;
+  }
+}
+
 /**
  * The "file extension" is strictly the last segment post-dot
  * Known constraint: this ignores extensions like .tar.gz

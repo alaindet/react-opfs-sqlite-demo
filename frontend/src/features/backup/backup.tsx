@@ -27,8 +27,15 @@ export function BackupPage() {
     }
 
     setIsUploading(true);
-    await backend.backup.import(restoreFile);
-    setIsUploading(false);
+    try {
+      const res = await backend.backup.import(restoreFile);
+      alert(res.message);
+    } catch (err: any) {
+      const errMessage = err?.message ?? 'Error importing data';
+      alert(errMessage);
+    } finally {
+      setIsUploading(false);
+    }
   }, []);
 
   return (

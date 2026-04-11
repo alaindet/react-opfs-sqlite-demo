@@ -1,4 +1,4 @@
-import { deleteDir, deleteFile, emptyDir, fileExists, getDir, getRelativeDir, readFile, writeDataToFile, writeFile } from './functions';
+import { deleteDir, deleteFile, dirExists, emptyDir, fileExists, getDir, getRelativeDir, readFile, writeDataToFile, writeFile } from './functions';
 
 export class OpfsDirectoryController {
 
@@ -52,6 +52,12 @@ export class OpfsDirectoryController {
   async safeDeleteFile(filename: string): Promise<void> {
     if (await fileExists(this.#dirHandle, filename)) {
       await deleteFile(this.#dirHandle, filename);
+    }
+  }
+
+  async safeDeleteDir(filename: string): Promise<void> {
+    if (await dirExists(this.#dirHandle, filename)) {
+      await deleteDir(this.#dirHandle, filename);
     }
   }
 
