@@ -10,6 +10,7 @@ export type WorkerBaseResponse<T extends any = any> = {
   requestedAt: number;
   respondedAt: number;
   action: string;
+  binary: boolean;
   message: string;
   data: T;
 };
@@ -55,44 +56,6 @@ export type WorkerState = typeof WORKER_STATE[
   keyof typeof WORKER_STATE
 ];
 
-export function createOkWorkerResponse<
-  TRequest extends any = any,
-  TResponse extends any = any,
->(
-  request: WorkerRequest<TRequest>,
-  message: string,
-  data: TResponse,
-): WorkerSuccessResponse<TResponse> {
-  return {
-    requestId: request.requestId,
-    requestedAt: request.requestedAt,
-    respondedAt: Date.now(),
-    action: request.action,
-    error: false,
-    message,
-    data,
-  };
-}
-
-export function createErrWorkerResponse<
-  TRequest extends any = any,
-  TResponse extends any = any,
->(
-  request: WorkerRequest<TRequest>,
-  message: string,
-  data: TResponse,
-): WorkerErrorResponse<TResponse> {
-  return {
-    requestId: request.requestId,
-    requestedAt: request.requestedAt,
-    respondedAt: Date.now(),
-    action: request.action,
-    error: true,
-    message,
-    data,
-  };
-}
-
 export class WorkerResponder {
 
   #request!: WorkerRequest;
@@ -104,8 +67,18 @@ export class WorkerResponder {
   success<T extends any = any>(
     message: string,
     data: T,
+    options?: { binary: boolean },
   ): WorkerSuccessResponse<T> {
-    return createOkWorkerResponse(this.#request, message, data);
+    return {
+      requestId: this.#request.requestId,
+      requestedAt: this.#request.requestedAt,
+      respondedAt: Date.now(),
+      action: this.#request.action,
+      error: false,
+      binary: !!options?.binary,
+      message,
+      data,
+    };
   }
 
   asyncSuccess<T extends any = any>(
@@ -118,8 +91,18 @@ export class WorkerResponder {
   error<T extends any = any>(
     message: string,
     data: T,
+    options?: { binary: boolean },
   ): WorkerErrorResponse<T> {
-    return createErrWorkerResponse(this.#request, message, data);
+    return {
+      requestId: this.#request.requestId,
+      requestedAt: this.#request.requestedAt,
+      respondedAt: Date.now(),
+      action: this.#request.action,
+      error: true,
+      binary: !!options?.binary,
+      message,
+      data,
+    };
   }
 
   asyncError<T extends any = any>(

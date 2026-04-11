@@ -25,9 +25,11 @@ export const backend = {
     export(): Promise<WorkerResponse<ArrayBuffer>> {
       return w.request(BACKEND_ACTION.BACKUP.EXPORT);
     },
-    // TODO: Type
-    import(restoreFile: File): Promise<WorkerResponse<any>> {
+    import(restoreFile: File) {
       return w.request(BACKEND_ACTION.BACKUP.IMPORT, restoreFile);
     },
+    wipe() {
+      return w.request(BACKEND_ACTION.BACKUP.WIPE);
+    }
   },
 };

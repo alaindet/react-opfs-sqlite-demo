@@ -1,5 +1,4 @@
-import { Database } from '@sqlite.org/sqlite-wasm';
-
+import { DatabaseService } from '../database/database.service';
 import { ImagesController } from '../images';
 import { Logger } from '../logger';
 import { WorkerAction } from '../worker-message-broker';
@@ -11,7 +10,7 @@ import { RecipesService } from './recipes.service';
 
 export const recipesRoutes = (
   logger: Logger,
-  db: Database,
+  db: DatabaseService,
   images: ImagesController,
 ): WorkerAction[] => {
   const repo = new RecipesRepository(logger, db);

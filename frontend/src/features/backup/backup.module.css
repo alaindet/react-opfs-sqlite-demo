@@ -1,3 +1,10 @@
+.controls {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 .upload {
   display: flex;
   flex-direction: column;

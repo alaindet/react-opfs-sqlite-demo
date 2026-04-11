@@ -5,19 +5,33 @@ import style from './backup.module.css';
 import { download, toFilenameDatetime } from '../../backend/utils';
 
 export function BackupPage() {
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const handleDownloadBackupData = useCallback(async () => {
-    setIsDownloading(true);
+    setIsLoading(true);
     const res = await backend.backup.export();
+    if (res.error) {
+      alert(res.message);
+      setIsLoading(false);
+      return;
+    }
+
     const zipBlob = new Blob([res.data], { type: 'application/zip' });
     const datetime = toFilenameDatetime();
     const filename = `backup.${datetime}.zip`;
     download(zipBlob, filename);
-    setIsDownloading(false);
+    setIsLoading(false);
   }, []);
+
+  const handleWipeAllData = useCallback(async () => {
+    const confirmed = confirm('Wipe all data?');
+    if (!confirmed) return;
+    setIsLoading(true);
+    const res = await backend.backup.wipe();
+    alert(res.message);
+    setIsLoading(false);
+  }, [])
 
   const handleUploadBackupData = useCallback(async () => {
     const restoreFile = fileRef.current?.files?.[0];
@@ -26,7 +40,7 @@ export function BackupPage() {
       return;
     }
 
-    setIsUploading(true);
+    setIsLoading(true);
     try {
       const res = await backend.backup.import(restoreFile);
       alert(res.message);
@@ -34,7 +48,7 @@ export function BackupPage() {
       const errMessage = err?.message ?? 'Error importing data';
       alert(errMessage);
     } finally {
-      setIsUploading(false);
+      setIsLoading(false);
     }
   }, []);
 
@@ -42,33 +56,47 @@ export function BackupPage() {
     <>
       <h1>Backup</h1>
 
-      <button
-        type="button"
-        disabled={isDownloading}
-        onClick={handleDownloadBackupData}
-      >
-        Download backup data
-      </button>
+      <div className={style.controls}>
 
-      <div className={style.upload}>
-        <label htmlFor="field-upload">
-          Upload backup data
-        </label>
-        
-        <input
-          type="file"
-          id="field-image"
-          ref={fileRef}
-          disabled={isUploading}
-        />
-
+        {/* Download backup data */}
         <button
           type="button"
-          disabled={isUploading}
-          onClick={handleUploadBackupData}
+          disabled={isLoading}
+          onClick={handleDownloadBackupData}
         >
-          Upload backup data
+          Download backup data
         </button>
+
+        {/* Wipe all data */}
+        <button
+          type="button"
+          disabled={isLoading}
+          onClick={handleWipeAllData}
+        >
+          Wipe all data
+        </button>
+
+        {/* Upload backup data */}
+        <div className={style.upload}>
+          <label htmlFor="field-upload">
+            Upload backup data
+          </label>
+          
+          <input
+            type="file"
+            id="field-image"
+            ref={fileRef}
+            disabled={isLoading}
+          />
+
+          <button
+            type="button"
+            disabled={isLoading}
+            onClick={handleUploadBackupData}
+          >
+            Upload backup data
+          </button>
+        </div>
       </div>
     </>
   );

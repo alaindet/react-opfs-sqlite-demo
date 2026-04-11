@@ -3,10 +3,11 @@ import { seedDatabase } from './database/seed';
 import { ImagesController } from './images';
 import { ConsoleLogger } from './logger';
 import { OpfsDirectoryController } from './opfs/dir.controller';
-import { WorkerRequest, WorkerRequestHandler, WorkerRequestRouter, WorkerResponder, WorkerState, WORKER_STATE } from './worker-message-broker';
+import { WorkerRequest, WorkerRequestHandler, WorkerRequestRouter, WorkerResponder, WorkerState, WORKER_STATE, WorkerResponse } from './worker-message-broker';
 import { DATABASE_FILENAME, IMAGES_DIR } from './constants';
 import { recipesRoutes } from './recipes/routes';
 import { backupRoutes } from './backup/routes';
+import { DatabaseService } from './database/database.service';
 
 // State
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
@@ -45,15 +46,20 @@ async function handleRequest(req: WorkerRequest) {
   }
 
   const responder = new WorkerResponder(req);
+  let res!: WorkerResponse;
 
   try {
-    const res = await handler(req, responder);
+    res = await handler(req, responder);
     logger.trace('Response', res);
     if (res.error) logger.warn('Error response', res);
-    ctx.postMessage(res);
   } catch (err) {
     logger.error('Unhandled error in handler', { action: req.action, err });
-    const res = responder.error('Internal error', { req, err });
+    res = responder.error('Internal error', { req, err });
+  }
+
+  if (res.binary) {
+    ctx.postMessage(res, [res.data]);
+  } else {
     ctx.postMessage(res);
   }
 }
@@ -72,11 +78,12 @@ async function handleRequest(req: WorkerRequest) {
   images = await ImagesController.fromPath(fs, IMAGES_DIR);
   const db = await initDatabase(logger, `/${DATABASE_FILENAME}`);
   await seedDatabase(db);
+  const dbService = new DatabaseService(db);
 
   // Init router
   router = new Map<string, WorkerRequestHandler>([
-    ...recipesRoutes(logger, db, images),
-    ...backupRoutes(logger, db, fs),
+    ...recipesRoutes(logger, dbService, images),
+    ...backupRoutes(logger, dbService, fs),
     // Add routes here...
   ].map(route => [route.action, route.handle]));
 

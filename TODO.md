@@ -1,7 +1,8 @@
 - [x] Add SQLite 3
 - [x] Separate the Recipes SQL repository from the OPFS and mapper
 - [x] Add seeder
+- [x] Add import/export data feature
+- [ ] Downloading data post-wipe raises error
 - [ ] Move backend to "backend" package
-- [ ] Add import/export data feature
-- [ ] How to download a stream for large database
-- [ ] const stream = file.stream(); worker.postMessage({ stream }, [stream]);
+- [ ] How to download a stream for large database?
+- [ ] Use ReadableStream for import/export

@@ -16,7 +16,6 @@ export const createBackupImportAction = (
     | WorkerSuccessResponse
     | WorkerErrorResponse
   )> {
-
     if (req.data.type !== 'application/zip') {
       const message = 'Uploaded file must be a .zip file';
       logger.error(message);

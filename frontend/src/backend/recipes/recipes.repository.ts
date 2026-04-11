@@ -1,7 +1,7 @@
-import type { Database } from '@sqlite.org/sqlite-wasm';
 import sql from 'sql-template-tag';
 
 import { CreateRecipeDatabaseRow, Recipe, RecipeDatabaseRow } from '../../types';
+import { DatabaseService } from '../database/database.service';
 import { Logger } from '../logger';
 
 const query = {
@@ -29,15 +29,15 @@ const query = {
 
 export class RecipesRepository {
   #logger!: Logger;
-  #db!: Database;
+  #db!: DatabaseService;
 
-  constructor(logger: Logger, db: Database) {
+  constructor(logger: Logger, db: DatabaseService) {
     this.#logger = logger.createScopedLogger('RecipesRepository');
     this.#db = db;
   }
 
   async getById(id: Recipe['id']): Promise<RecipeDatabaseRow | null> {
-    const rows = this.#db.exec({
+    const rows = this.#db.db.exec({
       sql: query.selectById.sql,
       bind: [id],
       returnValue: 'resultRows',
@@ -49,7 +49,7 @@ export class RecipesRepository {
   }
 
   async getByTitle(title: Recipe['title']): Promise<RecipeDatabaseRow | null> {
-    const rows = this.#db.exec({
+    const rows = this.#db.db.exec({
       sql: query.selectByTitle.sql,
       bind: [title.trim()],
       returnValue: 'resultRows',
@@ -61,7 +61,7 @@ export class RecipesRepository {
   }
 
   async getAll(): Promise<RecipeDatabaseRow[]> {
-    const rows = this.#db.exec({
+    const rows = this.#db.db.exec({
       sql: query.selectAll.sql,
       returnValue: 'resultRows',
     });
@@ -70,19 +70,19 @@ export class RecipesRepository {
   }
 
   async add(dto: CreateRecipeDatabaseRow): Promise<RecipeDatabaseRow> {
-    this.#db.exec({
+    this.#db.db.exec({
       sql: query.insert.sql,
       bind: [dto.title, dto.description, dto.imageFilename],
     });
 
-    const rowsAffected = this.#db.changes();
+    const rowsAffected = this.#db.db.changes();
     if (rowsAffected !== 1) {
       const message = 'Recipe not created';
       this.#logger.error(message, dto);
       throw new Error(message);
     }
 
-    const id = this.#db.exec({
+    const id = this.#db.db.exec({
       sql: query.lastId.sql,
       returnValue: 'resultRows',
     })[0][0];
@@ -97,12 +97,12 @@ export class RecipesRepository {
   }
 
   async delete(id: Recipe['id']): Promise<void> {
-    this.#db.exec({
+    this.#db.db.exec({
       sql: query.delete.sql,
       bind: [id],
     });
 
-    const rowsAffected = this.#db.changes();
+    const rowsAffected = this.#db.db.changes();
     if (rowsAffected !== 1) {
       const message = 'Recipe not removed';
       this.#logger.error(message, { id });

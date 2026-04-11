@@ -1,18 +1,19 @@
-import sqlite3InitModule, { Database } from '@sqlite.org/sqlite-wasm';
+import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
 import JSZip from 'jszip';
 
 import { Logger } from '../logger';
 import { OpfsDirectoryController } from '../opfs';
 import { DATABASE_FILENAME, IMAGES_DIR } from '../constants';
+import { DatabaseService } from '../database/database.service';
 
 export class BackupService {
   #logger!: Logger;
-  #db!: Database;
+  #db!: DatabaseService;
   #fs!: OpfsDirectoryController;
 
   constructor(
     logger: Logger,
-    db: Database,
+    db: DatabaseService,
     fs: OpfsDirectoryController,
   ) {
     this.#logger = logger.createScopedLogger('BackupService');
@@ -57,7 +58,7 @@ export class BackupService {
     }
 
     // Close the existing database
-    this.#db.close();
+    this.#db.db.close();
 
     // Open the new database connection
     const sqlite3 = await sqlite3InitModule({
@@ -79,20 +80,28 @@ export class BackupService {
       new Uint8Array(dbData),
     );
 
+    // Store the reference to the new database connection
+    this.#db.setDb(new sqlite3.oo1.OpfsDb(DATABASE_FILENAME));
+
     // Remove all existing images
     await this.#fs.safeDeleteDir(IMAGES_DIR);
 
     const extractedImagesDir = zip.folder(IMAGES_DIR);
 
-    // ERROR: If no images to import
+    // ERROR: If no images to import from the .zip file
     if (!extractedImagesDir) {
       const message = 'No images to import found';
       this.#logger.error(message);
       throw new Error(message);
     }
 
-    const imageFiles: FileRestored[] = [];
+    // Get the images directory handle on OPFS
+    const imagesDirController = await this.#fs.getDir(IMAGES_DIR);
+    const imagesDir = imagesDirController.dirHandle;
 
+    // Read all images from .zip in memory
+    // TODO: Stream/chunk?
+    const imageFiles: FileRestored[] = [];
     extractedImagesDir.forEach((name, imageFile) => {
       if (!imageFile.dir) {
         const data$ = imageFile.async('arraybuffer');
@@ -100,25 +109,28 @@ export class BackupService {
       }
     });
 
-    const imagesDir = await this.#fs.dirHandle.getDirectoryHandle(IMAGES_DIR);
+    // Write extracted images into the OPFS
+    for await (const { name, data$ } of imageFiles) {
+      const buffer = await data$;
+      const data = new Uint8Array(buffer);
+      const fileHandle = await imagesDir.getFileHandle(name, { create: true });
+      const accessHandle = await fileHandle.createSyncAccessHandle();
+      try {
+        accessHandle.write(data, { at: 0 });
+        accessHandle.truncate(data.byteLength);
+        accessHandle.flush();
+      } finally {
+        accessHandle.close();
+      }
+    }
+  }
 
-    // TODO: Remove
-    this.#logger.debug('DEV', { extractedImagesDir, imagesDir });
-
-    // // Write extracted images into the OPFS
-    // for await (const { name, data$ } of imageFiles) {
-    //   const buffer = await data$;
-    //   const data = new Uint8Array(buffer);
-    //   const fileHandle = await imagesDir.getFileHandle(name, { create: true });
-    //   const accessHandle = await fileHandle.createSyncAccessHandle();
-    //   try {
-    //     accessHandle.write(data, { at: 0 });
-    //     accessHandle.truncate(data.byteLength);
-    //     accessHandle.flush();
-    //   } finally {
-    //     accessHandle.close();
-    //   }
-    // }
+  async wipe(): Promise<void> {
+    // TODO: Make more generic?
+    this.#db.db.exec({ sql: 'DELETE FROM recipes' });
+    this.#logger.trace('Wiped database');
+    await this.#fs.safeDeleteDir(IMAGES_DIR);
+    this.#logger.trace('Wiped images');
   }
 
   #getDbReport(bytesLength: number): string {
@@ -136,7 +148,7 @@ export class BackupService {
   async #readDb(): Promise<ArrayBuffer> {
     const tempFilename = '.temp.db';
     await this.#fs.safeDeleteFile(tempFilename);
-    this.#db.exec({ sql: `VACUUM INTO 'file:${tempFilename}?vfs=opfs'` });
+    this.#db.db.exec({ sql: `VACUUM INTO 'file:${tempFilename}?vfs=opfs'` });
     const tempFile = await this.#fs.readFile(tempFilename);
     const tempBuffer = await tempFile.arrayBuffer();
     await this.#fs.safeDeleteFile(tempFilename);

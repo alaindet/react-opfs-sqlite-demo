@@ -32,15 +32,16 @@ export async function initDatabase(
   });
 
   // Initialize database from file and/or create it
-  logger.trace('Initializing SQLite database from OPFS');
-  if ('opfs' in sqlite3) {
-    db = new sqlite3.oo1.OpfsDb(dbPath);
-    logger.trace('OPFS available, database persisted', { path: db.filename });
-  } else {
-    db = new sqlite3.oo1.DB(dbPath, 'ct');
-    logger.trace('OPFS unavailable, database is in-memory');
+  logger.trace('Initializing database from OPFS');
+
+  // ERROR: OPFS not available
+  if (!('opfs' in sqlite3)) {
+    const message = 'OPFS not available, cannot initialize database';
+    logger.error(message);
+    throw new Error(message);
   }
 
+  db = new sqlite3.oo1.OpfsDb(dbPath);
   logger.trace('Database initialized');
   return db;
 }
