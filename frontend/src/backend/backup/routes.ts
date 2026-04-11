@@ -1,16 +1,21 @@
 import { Database } from '@sqlite.org/sqlite-wasm';
 
 import { Logger } from '../logger';
-import { ImagesController } from '../images';
+import { OpfsDirectoryController } from '../opfs';
 import { WorkerAction } from '../worker-message-broker';
 import { createBackupDownloadAction } from './download.action';
 import { createBackupRestoreAction } from './restore.actions';
+import { BackupService } from './backup.service';
 
 export const backupRoutes = (
   logger: Logger,
   db: Database,
-  images: ImagesController,
-): WorkerAction[] => [
-  createBackupDownloadAction(logger, db, images),
-  createBackupRestoreAction(logger, db, images),
-];
+  fs: OpfsDirectoryController,
+): WorkerAction[] => {
+  const service = new BackupService(logger, db, fs);
+
+  return [
+    createBackupDownloadAction(logger, service),
+    createBackupRestoreAction(logger, service),
+  ];
+};

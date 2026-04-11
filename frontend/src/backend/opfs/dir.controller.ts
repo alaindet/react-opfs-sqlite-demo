@@ -39,7 +39,7 @@ export class OpfsDirectoryController {
 
   async readFile(filename: string): Promise<File> {
     return readFile(this.#dirHandle, filename);
-  }
+  }  
 
   async deleteFile(filename: string): Promise<void> {
     return deleteFile(this.#dirHandle, filename);
@@ -47,6 +47,12 @@ export class OpfsDirectoryController {
 
   async deleteDir(filename: string): Promise<void> {
     return deleteDir(this.#dirHandle, filename);
+  }
+
+  async safeDeleteFile(filename: string): Promise<void> {
+    if (await fileExists(this.#dirHandle, filename)) {
+      await deleteFile(this.#dirHandle, filename);
+    }
   }
 
   async empty(): Promise<void> {

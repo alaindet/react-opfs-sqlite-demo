@@ -25,15 +25,20 @@ export type Logger = {
 
 export class ConsoleLogger {
   name!: string;
+  #minLevel!: LoggerLevel;
   #allowedLevels!: Set<LoggerLevel>;
 
   constructor(name: string, minLevel?: LoggerLevel) {
     this.name = name;
+    this.#minLevel = minLevel ?? LOGGER_LEVEL.TRACE;
     this.#allowedLevels = this.#parseMinLevel(minLevel);
   }
 
-  createScopedLogger(name: string): ConsoleLogger {
-    return new ConsoleLogger(`${this.name}/${name}`);
+  createScopedLogger(name: string, minLevel?: LoggerLevel): ConsoleLogger {
+    return new ConsoleLogger(
+      `${this.name}/${name}`,
+      minLevel ?? this.#minLevel,
+    );
   }
 
   fatal(message: string, data?: Record<string, any>): void {

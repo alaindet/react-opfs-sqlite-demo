@@ -1,11 +1,12 @@
-import { backupRoutes } from './backup/routes';
 import { initDatabase } from './database/database';
 import { seedDatabase } from './database/seed';
-import { IMAGES_DIR, ImagesController } from './images';
+import { ImagesController } from './images';
 import { ConsoleLogger } from './logger';
 import { OpfsDirectoryController } from './opfs/dir.controller';
-import { recipesRoutes } from './recipes/routes';
 import { WorkerRequest, WorkerRequestHandler, WorkerRequestRouter, WorkerResponder, WorkerState, WORKER_STATE } from './worker-message-broker';
+import { DATABASE_FILENAME, IMAGES_DIR } from './constants';
+import { recipesRoutes } from './recipes/routes';
+import { backupRoutes } from './backup/routes';
 
 // State
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
@@ -64,18 +65,18 @@ async function handleRequest(req: WorkerRequest) {
   // Init dependencies
   fs = await OpfsDirectoryController.fromRoot();
 
-  // TODO: Remove
-  await fs.empty();
-  logger.debug('Cleared all data');
+  // // TODO: Remove
+  // await fs.empty();
+  // logger.debug('Cleared all data');
 
   images = await ImagesController.fromPath(fs, IMAGES_DIR);
-  const db = await initDatabase(logger, '/db.sqlite3');
+  const db = await initDatabase(logger, `/${DATABASE_FILENAME}`);
   await seedDatabase(db);
 
   // Init router
   router = new Map<string, WorkerRequestHandler>([
     ...recipesRoutes(logger, db, images),
-    ...backupRoutes(logger, db, images),
+    ...backupRoutes(logger, db, fs),
     // Add routes here...
   ].map(route => [route.action, route.handle]));
 

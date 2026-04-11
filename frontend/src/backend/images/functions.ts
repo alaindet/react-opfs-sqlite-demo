@@ -1,8 +1,5 @@
 import { deleteFile, fileExists, readFile, writeDataToFile } from '../opfs';
-
-export const IMAGES_DIR = 'images';
-export const IMAGE_MAX_DIMENSION = 1200; // px - longest edge
-export const IMAGE_QUALITY = 0.8;
+import { IMAGE_MAX_DIMENSION, IMAGE_QUALITY } from '../constants';
 
 /** Compresses and stored an image */
 export async function storeImage(

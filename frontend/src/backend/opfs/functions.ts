@@ -1,6 +1,8 @@
+import { trimLeft } from '../utils';
+
 /**
  * Gets a directory handle from a directory name, a slash-separated path or
- * an array of path segments
+ * an array of path segments. Creates directories if needed
  */
 export async function getDir(
   path?: string | string[],
@@ -8,20 +10,29 @@ export async function getDir(
   let dir = await navigator.storage.getDirectory();
 
   // Root (no path)
-  if (dir === undefined) {
+  if (path === undefined || path === '/' || path === '') {
     return dir;
   }
 
-  // Simple path
+  // Simple path with slashes
   if (typeof path === 'string' && path.indexOf('/') === -1) {
     return dir.getDirectoryHandle(path, { create: true });
   }
 
-  // Path segments
-  const segments = (typeof path === 'string' && path.indexOf('/') !== -1)
-    ? path.split('/')
-    : (path as string[]);
+  const segments: string[] = [];
 
+  // A simple array with path segments, ex.: ['foo', 'bar', 'baz']
+  if (Array.isArray(path)) {
+    segments.push(...path);
+  }
+  
+  // A slash-separated path string, ex.: foo/bar/baz
+  else {
+    const relativePath = trimLeft(path, '/');
+    segments.push(...relativePath.split('/'));
+  }
+
+  // Visit or create nested directories
   for (const segment of segments) {
     dir = await dir.getDirectoryHandle(segment, { create: true });
   }

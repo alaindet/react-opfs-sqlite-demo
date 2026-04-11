@@ -21,6 +21,5 @@ export const recipesRoutes = (
     createRecipesGetAllAction(logger, service),
     createRecipesCreateAction(logger, service),
     createRecipesDeleteAction(logger, service),
-    // ...s
   ];
 };

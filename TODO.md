@@ -1,5 +1,6 @@
 - [x] Add SQLite 3
-- [ ] Separate the Recipes SQL repository from the OPFS and mapper
-- [ ] Add seeder
-- [ ] Mode backend to "backend" package
+- [x] Separate the Recipes SQL repository from the OPFS and mapper
+- [x] Add seeder
+- [ ] Move backend to "backend" package
 - [ ] Add import/export data feature
+- [ ] How to download a stream for large database

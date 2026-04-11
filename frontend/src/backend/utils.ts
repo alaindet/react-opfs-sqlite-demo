@@ -13,3 +13,17 @@ export function toSqlDatetime(_date?: Date): string {
   
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
+
+export function trimLeft(str: string, prefix: string): string {
+  if (str.startsWith(prefix)) {
+    return str.slice(prefix.length);
+  }
+  return str;
+}
+
+export function trimRight(str: string, suffix: string): string {
+  if (str.endsWith(suffix)) {
+    return str.slice(0, -1 * suffix.length);
+  }
+  return str;
+}

@@ -12,7 +12,7 @@
 
 import JSZip from "jszip";
 import { getDb } from "./db.js";
-import { saveImageRaw, deleteAllImages } from "./images.js";
+import { deleteAllImages, saveImageRaw } from "./images.js";
 
 const DB_FILENAME = "recipes.sqlite3";
 const IMAGE_DIR = "recipe-images";

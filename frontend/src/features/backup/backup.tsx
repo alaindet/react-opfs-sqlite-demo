@@ -39,7 +39,7 @@ export function BackupPage() {
       </button>
 
       <div className={style.upload}>
-        <label htmlFor="field-upload" className={style.uploadLabel}>
+        <label htmlFor="field-upload">
           Upload backup data
         </label>
         
@@ -48,7 +48,6 @@ export function BackupPage() {
           id="field-image"
           ref={fileRef}
           disabled={isUploading}
-          className={style.uploadInput}
         />
 
         <button
