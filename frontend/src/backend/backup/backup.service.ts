@@ -1,4 +1,4 @@
-import { Database } from '@sqlite.org/sqlite-wasm';
+import sqlite3InitModule, { Database } from '@sqlite.org/sqlite-wasm';
 import JSZip from 'jszip';
 
 import { Logger } from '../logger';
@@ -21,7 +21,7 @@ export class BackupService {
   }
 
   /** TODO: Stream this? */
-  async download(): Promise<ArrayBuffer> {
+  async export(): Promise<ArrayBuffer> {
     const zip = new JSZip();
     const dbBuffer = await this.#readDb();
     zip.file(DATABASE_FILENAME, dbBuffer);
@@ -43,6 +43,37 @@ export class BackupService {
       compression: 'DEFLATE',
       compressionOptions: { level: 6 },
     });
+  }
+
+  async import(data: ArrayBuffer): Promise<void> {
+    const zip = await JSZip.loadAsync(data);
+    const extractedDbFile = zip.file(DATABASE_FILENAME);
+
+    if (!extractedDbFile) {
+      const message = 'No database file found in zip';
+      this.#logger.error(message);
+      throw new Error(message);
+    }
+
+    this.#db.close();
+    const dbData = await extractedDbFile.async('arraybuffer');
+    const sqlite3 = await sqlite3InitModule({
+      print: this.#logger.trace,
+      printErr: this.#logger.error,
+    });
+
+    if (!('opfs' in sqlite3)) {
+      const message = 'OPFS not available, cannot import database';
+      this.#logger.error(message);
+      throw new Error(message);
+    }
+
+    await sqlite3.oo1.OpfsDb.importDb(
+      `/${DATABASE_FILENAME}`,
+      new Uint8Array(dbData),
+    );
+
+    // TODO
   }
 
   #getDbReport(bytesLength: number): string {

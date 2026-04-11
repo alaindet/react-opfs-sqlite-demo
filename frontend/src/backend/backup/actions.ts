@@ -1,4 +1,4 @@
 export const BACKUP_ACTION = {
-  DOWNLOAD: 'backup/download',
-  RESTORE: 'backup/restore',
+  EXPORT: 'backup/export',
+  IMPORT: 'backup/import',
 } as const;

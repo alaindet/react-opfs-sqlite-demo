@@ -1,5 +1,5 @@
 import { OpfsDirectoryController, stripFileExtension } from '../opfs';
-import { IMAGE_MAX_DIMENSION, IMAGE_QUALITY } from './functions';
+import { IMAGE_MAX_DIMENSION, IMAGE_QUALITY } from '../constants';
 
 export class ImagesController {
 

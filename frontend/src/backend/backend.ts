@@ -1,5 +1,5 @@
 import { CreateRecipeDto, Recipe } from '../types';
-import { BACKEND_ACTION } from './actions';
+import { BACKEND_ACTION } from './constants';
 import { enforceDataPersistance } from './opfs/functions';
 import { WorkerClient, WorkerResponse } from './worker-message-broker';
 
@@ -22,13 +22,12 @@ export const backend = {
     },
   },
   backup: {
-    // TODO: Type
-    download(): Promise<WorkerResponse<any>> {
-      return w.request(BACKEND_ACTION.BACKUP.DOWNLOAD);
+    export(): Promise<WorkerResponse<ArrayBuffer>> {
+      return w.request(BACKEND_ACTION.BACKUP.EXPORT);
     },
     // TODO: Type
-    restore(restoreFile: File): Promise<WorkerResponse<any>> {
-      return w.request(BACKEND_ACTION.BACKUP.RESTORE, restoreFile);
+    import(restoreFile: File): Promise<WorkerResponse<any>> {
+      return w.request(BACKEND_ACTION.BACKUP.IMPORT, restoreFile);
     },
   },
 };

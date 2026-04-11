@@ -1,5 +1,6 @@
 import { CreateRecipeDto, Recipe, RecipeDatabaseRow } from '../../types';
-import { IMAGE_MAX_DIMENSION, IMAGE_QUALITY, ImagesController } from '../images';
+import { ImagesController } from '../images';
+import { IMAGE_MAX_DIMENSION, IMAGE_QUALITY } from '../constants';
 import { Logger } from '../logger';
 import { toSqlDatetime } from '../utils';
 import { RecipesRepository } from './recipes.repository';

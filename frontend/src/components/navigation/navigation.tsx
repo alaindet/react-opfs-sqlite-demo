@@ -7,13 +7,13 @@ export function Navigation() {
       <ul className={style.links}>
 
         <li className={style.link}>
-          <NavLink to="/" end className={r => r.isActive ? style.active : null}>
+          <NavLink to="/" end className={r => r.isActive ? style.active : ''}>
             Recipes
           </NavLink>
         </li>
 
         <li className={style.link}>
-          <NavLink to="/backup" className={r => r.isActive ? style.active : null}>
+          <NavLink to="/backup" className={r => r.isActive ? style.active : ''}>
             Backup
           </NavLink>
         </li>

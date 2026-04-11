@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 
 import { backend } from '../../backend/backend';
 import style from './backup.module.css';
+import { download, toFilenameDatetime } from '../../backend/utils';
 
 export function BackupPage() {
   const [isDownloading, setIsDownloading] = useState(false);
@@ -10,7 +11,11 @@ export function BackupPage() {
 
   const handleDownloadBackupData = useCallback(async () => {
     setIsDownloading(true);
-    await backend.backup.download();
+    const res = await backend.backup.export();
+    const zipBlob = new Blob([res.data], { type: 'application/zip' });
+    const datetime = toFilenameDatetime();
+    const filename = `backup.${datetime}.zip`;
+    download(zipBlob, filename);
     setIsDownloading(false);
   }, []);
 
@@ -22,7 +27,7 @@ export function BackupPage() {
     }
 
     setIsUploading(true);
-    await backend.backup.restore(restoreFile);
+    await backend.backup.import(restoreFile);
     setIsUploading(false);
   }, []);
 

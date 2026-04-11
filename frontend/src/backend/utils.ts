@@ -14,6 +14,19 @@ export function toSqlDatetime(_date?: Date): string {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
+export function toFilenameDatetime(_date?: Date): string {
+  const date = _date ?? new Date();
+
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+
+  return `${year}${month}${day}_${hours}${minutes}${seconds}`;
+}
+
 export function trimLeft(str: string, prefix: string): string {
   if (str.startsWith(prefix)) {
     return str.slice(prefix.length);
@@ -26,4 +39,15 @@ export function trimRight(str: string, suffix: string): string {
     return str.slice(0, -1 * suffix.length);
   }
   return str;
+}
+
+export function download(data: Blob, filename: string): void {
+  const url = URL.createObjectURL(data);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
 }
