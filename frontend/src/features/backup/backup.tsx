@@ -8,6 +8,23 @@ export function BackupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
+  const handleDownloadBackupDataStream = useCallback(async () => {
+    setIsLoading(true);
+    const res = await backend.backup.exportStream();
+    if (res.error) {
+      alert(res.message);
+      setIsLoading(false);
+      return;
+    }
+
+    const datetime = toFilenameDatetime();
+    const suggestedName = `backup.${datetime}.zip`;
+    const handle = await window.showSaveFilePicker({ suggestedName });
+    const writable = await handle.createWritable();
+    // await res.data.pipeTo(writable);
+    setIsLoading(false);
+  }, []);
+
   const handleDownloadBackupData = useCallback(async () => {
     setIsLoading(true);
     const res = await backend.backup.export();
@@ -58,13 +75,22 @@ export function BackupPage() {
 
       <div className={style.controls}>
 
+        {/* Download backup data stream */}
+        <button
+          type="button"
+          disabled={isLoading}
+          onClick={handleDownloadBackupDataStream}
+        >
+          Download backup data (stream)
+        </button>
+
         {/* Download backup data */}
         <button
           type="button"
           disabled={isLoading}
           onClick={handleDownloadBackupData}
         >
-          Download backup data
+          Download backup data (legacy)
         </button>
 
         {/* Wipe all data */}

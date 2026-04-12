@@ -4,5 +4,8 @@
   "workspaces": [
     "backend",
     "frontend"
-  ]
+  ],
+  "dependencies": {
+    "client-zip": "^2.5.0"
+  }
 }

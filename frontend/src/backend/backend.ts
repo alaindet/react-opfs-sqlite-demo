@@ -25,6 +25,9 @@ export const backend = {
     export(): Promise<WorkerResponse<ArrayBuffer>> {
       return w.request(BACKEND_ACTION.BACKUP.EXPORT);
     },
+    exportStream(): Promise<WorkerResponse<Response>> {
+      return w.request(BACKEND_ACTION.BACKUP.EXPORT_STREAM);
+    },
     import(restoreFile: File) {
       return w.request(BACKEND_ACTION.BACKUP.IMPORT, restoreFile);
     },

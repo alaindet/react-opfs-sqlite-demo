@@ -2,7 +2,10 @@
 - [x] Separate the Recipes SQL repository from the OPFS and mapper
 - [x] Add seeder
 - [x] Add import/export data feature
-- [ ] Downloading data post-wipe raises error
-- [ ] Move backend to "backend" package
+- [ ] ERROR: Downloading data post-wipe raises error
 - [ ] How to download a stream for large database?
 - [ ] Use ReadableStream for import/export
+- [ ] Apply different compression levels when exporting: 6-8 for SQLite file, 0 for webp since it's already a compressed format
+- [ ] Notify progress to the UI thread while downloading and uploading
+- [ ] Treat bulk actions as special, do not handle like normal requests
+- [ ] Move backend to "backend" package

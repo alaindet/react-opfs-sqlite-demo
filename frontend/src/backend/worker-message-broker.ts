@@ -11,6 +11,7 @@ export type WorkerBaseResponse<T extends any = any> = {
   respondedAt: number;
   action: string;
   binary: boolean;
+  stream: boolean;
   message: string;
   data: T;
 };
@@ -67,7 +68,10 @@ export class WorkerResponder {
   success<T extends any = any>(
     message: string,
     data: T,
-    options?: { binary: boolean },
+    options?: {
+      binary?: boolean;
+      stream?: boolean;
+    },
   ): WorkerSuccessResponse<T> {
     return {
       requestId: this.#request.requestId,
@@ -76,6 +80,7 @@ export class WorkerResponder {
       action: this.#request.action,
       error: false,
       binary: !!options?.binary,
+      stream: !!options?.stream,
       message,
       data,
     };
@@ -91,7 +96,10 @@ export class WorkerResponder {
   error<T extends any = any>(
     message: string,
     data: T,
-    options?: { binary: boolean },
+    options?: {
+      binary?: boolean;
+      stream?: boolean;
+    },
   ): WorkerErrorResponse<T> {
     return {
       requestId: this.#request.requestId,
@@ -100,6 +108,7 @@ export class WorkerResponder {
       action: this.#request.action,
       error: true,
       binary: !!options?.binary,
+      stream: !!options?.stream,
       message,
       data,
     };

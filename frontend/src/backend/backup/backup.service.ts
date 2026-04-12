@@ -1,10 +1,12 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
+import { downloadZip, InputWithMeta, InputWithSizeMeta } from 'client-zip';
 import JSZip from 'jszip';
 
 import { Logger } from '../logger';
 import { OpfsDirectoryController } from '../opfs';
 import { DATABASE_FILENAME, IMAGES_DIR } from '../constants';
 import { DatabaseService } from '../database/database.service';
+import { download } from '../utils';
 
 export class BackupService {
   #logger!: Logger;
@@ -21,7 +23,56 @@ export class BackupService {
     this.#fs = fs;
   }
 
-  /** TODO: Stream this? */
+  async exportStream(): Promise<Response> {
+    return downloadZip(this.#exportStream());
+  }
+
+  async* #exportStream(): AsyncGenerator<InputWithMeta | InputWithSizeMeta> {
+    
+    const imagesDir = await this.#fs.dirHandle.getDirectoryHandle(IMAGES_DIR);
+
+    let totalFiles = 1; // Start from 1 to account for the database file
+    let processedFiles = 0;
+    for await (const _ of imagesDir.keys()) {
+      totalFiles++;
+    }
+
+    // TODO
+    const notifyProgress = () => {
+      processedFiles++;
+      self.postMessage({ 
+        type: 'EXPORT_PROGRESS', 
+        current: processedFiles,
+        total: totalFiles,
+        percent: Math.round((processedFiles / totalFiles) * 100),
+      });
+    };
+
+    const dbBuffer = await this.#readDb();
+
+    yield {
+      name: DATABASE_FILENAME,
+      lastModified: new Date(),
+      input: dbBuffer,
+    } as InputWithSizeMeta;
+    // notifyProgress(); // TODO
+    
+    for await (const [name, handle] of imagesDir.entries()) {
+      if (handle.kind === 'file') {
+        const fileHandle = handle as FileSystemFileHandle;
+        const file = await fileHandle.getFile();
+        const data = await file.arrayBuffer();
+
+        yield {
+          name,
+          lastModified: new Date(),
+          input: data,
+        } as InputWithSizeMeta;
+        // notifyProgress(); // TODO
+      }
+    }
+  };
+
   async export(): Promise<ArrayBuffer> {
     const zip = new JSZip();
     const dbBuffer = await this.#readDb();

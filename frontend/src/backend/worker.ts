@@ -57,11 +57,14 @@ async function handleRequest(req: WorkerRequest) {
     res = responder.error('Internal error', { req, err });
   }
 
-  if (res.binary) {
+  // If sending a binary or a stream of data, add it to the list of transferable
+  // objects to avoid serializing it (default behavior)
+  if (res.binary || res.stream) {
     ctx.postMessage(res, [res.data]);
-  } else {
-    ctx.postMessage(res);
+    return;
   }
+
+  ctx.postMessage(res);
 }
 
 (async function init() {
