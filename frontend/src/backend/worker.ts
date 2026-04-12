@@ -58,8 +58,9 @@ async function handleRequest(req: WorkerRequest) {
   }
 
   // If sending a binary or a stream of data, add it to the list of transferable
-  // objects to avoid serializing it (default behavior)
-  if (res.binary || res.stream) {
+  // objects to avoid serializing/deserializing it (default behavior) when
+  // passing through execution contexts (ex.: worker thread => main thread)
+  if (!res.error && (res.binary || res.stream)) {
     ctx.postMessage(res, [res.data]);
     return;
   }
@@ -86,7 +87,7 @@ async function handleRequest(req: WorkerRequest) {
   // Init router
   router = new Map<string, WorkerRequestHandler>([
     ...recipesRoutes(logger, dbService, images),
-    ...backupRoutes(logger, dbService, fs),
+    ...backupRoutes(logger, ctx, dbService, fs),
     // Add routes here...
   ].map(route => [route.action, route.handle]));
 

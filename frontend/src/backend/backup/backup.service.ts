@@ -10,15 +10,18 @@ import { download } from '../utils';
 
 export class BackupService {
   #logger!: Logger;
+  #ctx!: DedicatedWorkerGlobalScope;
   #db!: DatabaseService;
   #fs!: OpfsDirectoryController;
 
   constructor(
     logger: Logger,
+    ctx: DedicatedWorkerGlobalScope,
     db: DatabaseService,
     fs: OpfsDirectoryController,
   ) {
     this.#logger = logger.createScopedLogger('BackupService');
+    this.#ctx = ctx;
     this.#db = db;
     this.#fs = fs;
   }

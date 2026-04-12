@@ -9,10 +9,11 @@ import { createBackupWipeAction } from './wipe.action';
 
 export const backupRoutes = (
   logger: Logger,
+  ctx: DedicatedWorkerGlobalScope,
   db: DatabaseService,
   fs: OpfsDirectoryController,
 ): WorkerAction[] => {
-  const service = new BackupService(logger, db, fs);
+  const service = new BackupService(logger, ctx, db, fs);
 
   return [
     createBackupExportAction(logger, service),

@@ -1,23 +1,19 @@
-export type WorkerRequest<T extends any = any> = {
-  requestId: string;
-  requestedAt: number;
-  action: string;
-  data: T;
-};
-
 export type WorkerBaseResponse<T extends any = any> = {
-  requestId: string;
-  requestedAt: number;
-  respondedAt: number;
-  action: string;
-  binary: boolean;
-  stream: boolean;
-  message: string;
-  data: T;
+  requestId: string; // Unique UUID
+  requestedAt: number; // Datetime of request
+  respondedAt: number; // Datetime of response
+  action: string; // Action name, ex.: "recipes/getAll"
+  message: string; // The response message, safe for UI alerts
+  data: T; // The actual returned data
 };
 
 export type WorkerSuccessResponse<T extends any = any> = (
-  WorkerBaseResponse<T> & { error: false }
+  WorkerBaseResponse<T> & {
+    error: false;
+    binary: boolean; // Is a binary transferable object?
+    stream: boolean; // Is a stream transferable object?
+    progress: boolean; // Is a multi-message response? See WorkerRequest.onProgress
+  }
 );
 
 export type WorkerErrorResponse<T extends any = any> = (
@@ -28,6 +24,17 @@ export type WorkerResponse<T extends any = any> = (
   | WorkerSuccessResponse<T>
   | WorkerErrorResponse<T>
 );
+
+export type WorkerRequest<
+  T extends any = any,
+  TProgress extends any = any
+> = {
+  requestId: string;
+  requestedAt: number;
+  action: string;
+  onProgress?: (res: WorkerResponse<TProgress>) => void;
+  data: T;
+};
 
 export type WorkerRequestHandler<
   TRequest extends any = any,
@@ -69,6 +76,7 @@ export class WorkerResponder {
     message: string,
     data: T,
     options?: {
+      progress?: boolean;
       binary?: boolean;
       stream?: boolean;
     },
@@ -79,6 +87,7 @@ export class WorkerResponder {
       respondedAt: Date.now(),
       action: this.#request.action,
       error: false,
+      progress: !!options?.progress,
       binary: !!options?.binary,
       stream: !!options?.stream,
       message,
@@ -96,10 +105,6 @@ export class WorkerResponder {
   error<T extends any = any>(
     message: string,
     data: T,
-    options?: {
-      binary?: boolean;
-      stream?: boolean;
-    },
   ): WorkerErrorResponse<T> {
     return {
       requestId: this.#request.requestId,
@@ -107,8 +112,6 @@ export class WorkerResponder {
       respondedAt: Date.now(),
       action: this.#request.action,
       error: true,
-      binary: !!options?.binary,
-      stream: !!options?.stream,
       message,
       data,
     };
@@ -125,6 +128,7 @@ export class WorkerResponder {
 export class WorkerClient {
   #worker!: Worker;
   #pendingRequests = new Map<string, {
+    request: WorkerRequest,
     resolve: (value: any) => void;
     reject: (value: any) => void;
   }>();
@@ -136,36 +140,52 @@ export class WorkerClient {
 
   request<
     TRequest extends any = any,
-    TResponse extends any = any
-  >(action: string, data?: TRequest): Promise<TResponse> {
+    TResponse extends any = any,
+    TProgress extends any = any,
+  >(
+    action: string,
+    data?: TRequest,
+    options?: { onProgress: (res: WorkerResponse<TProgress>) => void },
+  ): Promise<TResponse> {
     const requestId = crypto.randomUUID();
 
     return new Promise((resolve, reject) => {
-      this.#pendingRequests.set(requestId, { resolve, reject });
-
-      this.#worker.postMessage({
+      const request = {
         requestId,
         requestedAt: Date.now(),
+        onProgress: options?.onProgress,
         action,
         data,
-      });
+      };
+      this.#pendingRequests.set(requestId, { request, resolve, reject });
+      this.#worker.postMessage(request);
     });
   }
 
   #handleMessage(event: MessageEvent<WorkerResponse>) {
     const res = event.data;
-    const promise = this.#pendingRequests.get(res.requestId);
+    const req = this.#pendingRequests.get(res.requestId);
 
-    if (!promise) {
+    // No request found with this ID
+    if (!req) {
       return;
     }
 
+    // Error response
     if (res.error) {
-      promise.reject(res);
-    } else {
-      promise.resolve(res);
+      req.reject(res);
+      this.#pendingRequests.delete(res.requestId);
+      return;
     }
 
+    // Progress response, it happens before resolving and does not remove the
+    // pending request
+    if (res.progress && req.request.onProgress) {
+      req.request.onProgress(res);
+      return;
+    }
+
+    req.resolve(res);
     this.#pendingRequests.delete(res.requestId);
   }
 }
