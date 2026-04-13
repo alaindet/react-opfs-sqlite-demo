@@ -1,6 +1,7 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
 import { downloadZip, InputWithSizeMeta } from 'client-zip';
 import JSZip from 'jszip';
+import { Zip, ZipDeflate, ZipPassThrough } from 'fflate';
 
 import { DATABASE_FILENAME, IMAGES_DIR } from '../constants';
 import { DatabaseService } from '../database/database.service';

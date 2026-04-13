@@ -31,9 +31,16 @@ export function ExportStreamDataSection() {
       return;
     }
 
-    const datetime = toFilenameDatetime();
-    const suggestedName = `backup.${datetime}.zip`;
-    const handle = await window.showSaveFilePicker({ suggestedName });
+    const handle = await window.showSaveFilePicker({
+      suggestedName: `backup.${toFilenameDatetime()}.zip`,
+      types: [
+        {
+          description: 'Exported recipes database',
+          accept: { 'application/zip': ['.zip'] },
+        },
+      ],
+    });
+
     const writable = await handle.createWritable();
 
     if (res.data) {

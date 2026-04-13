@@ -2,11 +2,13 @@
 - [x] Separate the Recipes SQL repository from the OPFS and mapper
 - [x] Add seeder
 - [x] Add import/export data feature
-- [ ] ERROR: Downloading data post-wipe raises error
-- [ ] How to download a stream for large database?
-- [ ] Use ReadableStream for import/export
-- [ ] Apply different compression levels when exporting: 6-8 for SQLite file, 0 for webp since it's already a compressed format
+- [x] How to download a stream for large database?
+- [x] Use ReadableStream for import/export
 - [x] Notify progress to the UI thread while downloading and uploading
+- [ ] ERROR: Downloading data post-wipe raises error
+- [ ] Use fflate for creating and reading .zip streams
+- [ ] Apply different compression levels when exporting: 6-8 for SQLite file, 0 for webp since it's already a compressed format
+- [ ] Minimize .zip dependencies
 - [ ] Use aliased imports
 - [ ] Move backend to "backend" package
-- [ ] The export stream should wrap the images into the /images folder inside the .zip archive
+- [x] The export stream should wrap the images into the /images folder inside the .zip archive
