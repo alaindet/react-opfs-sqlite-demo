@@ -1,14 +1,13 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { downloadZip, InputWithSizeMeta, makeZip } from 'client-zip';
+import { downloadZip, InputWithSizeMeta } from 'client-zip';
 import JSZip from 'jszip';
 
-import { Logger } from '../logger';
-import { OpfsDirectoryController } from '../opfs';
 import { DATABASE_FILENAME, IMAGES_DIR } from '../constants';
 import { DatabaseService } from '../database/database.service';
-import { ExportProgress } from './types';
+import { Logger } from '../logger';
+import { OpfsDirectoryController } from '../opfs';
 import { WorkerRequest, WorkerResponse, workerSuccessResponse } from '../worker-message-broker';
-import { download } from '../utils';
+import { ExportProgress } from './types';
 
 export class BackupService {
   #logger!: Logger;
@@ -34,8 +33,16 @@ export class BackupService {
     return downloadZip(this.#exportStream(req)).body;
   }
 
+  /**
+   * This generates data sequentially to be streamed into the .zip file
+   */
   async* #exportStream(req: WorkerRequest): AsyncGenerator<InputWithSizeMeta> {
-    
+
+    const startMessage = 'Exporting data start';
+    this.#logger.trace(startMessage);
+    const startRes = workerSuccessResponse.progressStart(req, startMessage, null);
+    this.#ctx.postMessage(startRes);
+
     const imagesDir = await this.#fs.dirHandle.getDirectoryHandle(IMAGES_DIR);
 
     let totalFiles = 1; // Start from 1 to account for the database file
@@ -57,7 +64,6 @@ export class BackupService {
       input: dbBuffer,
     };
 
-    await this.#wait();
     yield exportItem;
     notifyProgress();
     
@@ -71,19 +77,19 @@ export class BackupService {
       const data = await file.arrayBuffer();
 
       const exportItem: InputWithSizeMeta = {
-        name,
+        name: `${IMAGES_DIR}/${name}`,
         lastModified: new Date(),
         input: data,
       }; 
 
-      await this.#wait();
       yield exportItem;
       notifyProgress();
     }
-  }
 
-  #wait(delay = 2_000): Promise<void> {
-    return new Promise(done => setTimeout(done, delay));
+    const endMessage = 'Exporting data end';
+    this.#logger.trace(endMessage);
+    const endRes = workerSuccessResponse.progressStart(req, endMessage, null);
+    this.#ctx.postMessage(endRes);
   }
 
   #createExportProgress(req: WorkerRequest, totalFiles: number) {

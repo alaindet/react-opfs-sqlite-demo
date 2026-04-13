@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { ExportProgress } from '../../../backend/backup/types';
 import { backend } from '../../../backend/backend';
 import { toFilenameDatetime } from '../../../backend/utils';
+import { WORKER_PROGRESS_RESPONSE_STATE } from '../../../backend/worker-message-broker';
 
 export function ExportStreamDataSection() {
 
@@ -12,9 +13,16 @@ export function ExportStreamDataSection() {
   const handleDownloadBackupDataStream = useCallback(async () => {
     setIsLoading(true);
 
-    const res = await backend.backup.exportStream(progress => {
-      console.log('progress', progress.data);
-      setProgress(progress.data);
+    const res = await backend.backup.exportStream(res => {
+      switch (res.progress) {
+        case WORKER_PROGRESS_RESPONSE_STATE.NEXT:
+          console.log('progress', res.data);
+          setProgress(res.data);
+          break;
+        case WORKER_PROGRESS_RESPONSE_STATE.END:
+          alert('Downloaded all data');
+          setProgress(null);
+      }
     });
 
     if (res.error) {

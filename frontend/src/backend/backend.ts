@@ -2,7 +2,7 @@ import { CreateRecipeDto, Recipe } from '../types';
 import { ExportProgress } from './backup/types';
 import { BACKEND_ACTION } from './constants';
 import { enforceDataPersistance } from './opfs/functions';
-import { WorkerClient, WorkerResponse } from './worker-message-broker';
+import { WorkerClient, WorkerResponse, WorkerSuccessResponse } from './worker-message-broker';
 
 const workerUrl = new URL('./worker.ts', import.meta.url);
 const worker = new Worker(workerUrl, { type: 'module' });
@@ -27,8 +27,8 @@ export const backend = {
       return w.request(BACKEND_ACTION.BACKUP.EXPORT);
     },
     exportStream(
-      onProgress?: (res: WorkerResponse<ExportProgress>) => void,
-    ): Promise<WorkerResponse<ReadableStream>>  {
+      onProgress?: (res: WorkerSuccessResponse<ExportProgress>) => void,
+    ): Promise<WorkerSuccessResponse<ReadableStream>>  {
       return w.request(BACKEND_ACTION.BACKUP.EXPORT_STREAM, null, { onProgress });
     },
     import(restoreFile: File) {
