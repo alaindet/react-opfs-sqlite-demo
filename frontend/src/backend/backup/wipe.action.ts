@@ -1,4 +1,3 @@
-
 import { Logger } from '../logger';
 import { WorkerErrorResponse, WorkerRequest, WorkerResponder, WorkerSuccessResponse } from '../worker-message-broker';
 import { BACKUP_ACTION } from './actions';

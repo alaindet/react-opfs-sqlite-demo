@@ -6,6 +6,7 @@
 - [ ] How to download a stream for large database?
 - [ ] Use ReadableStream for import/export
 - [ ] Apply different compression levels when exporting: 6-8 for SQLite file, 0 for webp since it's already a compressed format
-- [ ] Notify progress to the UI thread while downloading and uploading
-- [ ] Treat bulk actions as special, do not handle like normal requests
+- [x] Notify progress to the UI thread while downloading and uploading
+- [ ] Use aliased imports
 - [ ] Move backend to "backend" package
+- [ ] The export stream should wrap the images into the /images folder inside the .zip archive

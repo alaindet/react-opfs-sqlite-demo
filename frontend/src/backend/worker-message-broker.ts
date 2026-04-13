@@ -125,17 +125,25 @@ export class WorkerResponder {
   }
 }
 
+// TODO: Create progress responses - init/running/end
+
 export class WorkerClient {
   #worker!: Worker;
+
   #pendingRequests = new Map<string, {
     request: WorkerRequest,
     resolve: (value: any) => void;
     reject: (value: any) => void;
   }>();
 
+  #progressTrackers = new Map<string, {
+    request: WorkerRequest,
+    onProgress?: (res: WorkerResponse) => void;
+  }>();
+
   constructor(worker: Worker) {
     this.#worker = worker;
-    this.#worker.onmessage = this.#handleMessage.bind(this);
+    this.#worker.onmessage = this.#handleWorkerMessage.bind(this);
   }
 
   request<
@@ -145,7 +153,7 @@ export class WorkerClient {
   >(
     action: string,
     data?: TRequest,
-    options?: { onProgress: (res: WorkerResponse<TProgress>) => void },
+    options?: { onProgress?: (res: WorkerResponse<TProgress>) => void },
   ): Promise<TResponse> {
     const requestId = crypto.randomUUID();
 
@@ -153,39 +161,118 @@ export class WorkerClient {
       const request = {
         requestId,
         requestedAt: Date.now(),
-        onProgress: options?.onProgress,
         action,
         data,
       };
-      this.#pendingRequests.set(requestId, { request, resolve, reject });
+      
+      this.#pendingRequests.set(requestId, {
+        request,
+        resolve,
+        reject,
+        onProgress: options?.onProgress,
+      });
+
       this.#worker.postMessage(request);
     });
   }
 
-  #handleMessage(event: MessageEvent<WorkerResponse>) {
+  #handleWorkerMessage(event: MessageEvent<WorkerResponse>) {
     const res = event.data;
-    const req = this.#pendingRequests.get(res.requestId);
 
     // No request found with this ID
-    if (!req) {
+    const pendingRequest = this.#pendingRequests.get(res.requestId);
+    if (!pendingRequest) {
       return;
     }
 
     // Error response
     if (res.error) {
-      req.reject(res);
+      pendingRequest.reject(res);
       this.#pendingRequests.delete(res.requestId);
       return;
     }
 
     // Progress response, it happens before resolving and does not remove the
     // pending request
-    if (res.progress && req.request.onProgress) {
-      req.request.onProgress(res);
+
+    // TODO: Remove
+    console.log('progress', {
+      isProgressResponse: res.progress,
+      onProgressFn: pendingRequest.onProgress,
+    });
+    
+    if (res.progress && pendingRequest.onProgress) {
+      pendingRequest.onProgress(res);
       return;
     }
 
-    req.resolve(res);
+    pendingRequest.resolve(res);
     this.#pendingRequests.delete(res.requestId);
   }
 }
+
+export function workerSuccessResponse<
+  T extends any = any,
+  TRequest extends any = any,
+>(
+  request: WorkerRequest<TRequest>,
+  message: string,
+  data: T,
+  options?: {
+    progress?: boolean;
+    binary?: boolean;
+    stream?: boolean;
+  },
+): WorkerSuccessResponse<T> {
+  return {
+    requestId: request.requestId,
+    requestedAt: request.requestedAt,
+    respondedAt: Date.now(),
+    action: request.action,
+    error: false,
+    progress: !!options?.progress,
+    binary: !!options?.binary,
+    stream: !!options?.stream,
+    message,
+    data,
+  };
+}
+
+workerSuccessResponse.progress = <
+  T extends any = any,
+  TRequest extends any = any,
+>(
+  request: WorkerRequest<TRequest>,
+  message: string,
+  data: T,
+) => workerSuccessResponse(request, message, data, {
+  progress: true,
+  binary: false,
+  stream: false,
+});
+
+workerSuccessResponse.binary = <
+  T extends any = any,
+  TRequest extends any = any,
+>(
+  request: WorkerRequest<TRequest>,
+  message: string,
+  data: T,
+) => workerSuccessResponse(request, message, data, {
+  progress: false,
+  binary: true,
+  stream: false,
+});
+
+workerSuccessResponse.stream = <
+  T extends any = any,
+  TRequest extends any = any,
+>(
+  request: WorkerRequest<TRequest>,
+  message: string,
+  data: T,
+) => workerSuccessResponse(request, message, data, {
+  progress: false,
+  binary: false,
+  stream: true,
+});

@@ -3,7 +3,7 @@ import { WorkerErrorResponse, WorkerRequest, WorkerResponder, WorkerSuccessRespo
 import { BACKUP_ACTION } from './actions';
 import { BackupService } from './backup.service';
 
-export const createBackupExportAction = (
+export const createBackupExportStreamAction = (
   logger: Logger,
   service: BackupService,
 ) => ({
@@ -12,11 +12,11 @@ export const createBackupExportAction = (
     req: WorkerRequest,
     res: WorkerResponder,
   ): Promise<(
-    | WorkerSuccessResponse<Response>
+    | WorkerSuccessResponse
     | WorkerErrorResponse
   )> {
     try {
-      const data = await service.exportStream();
+      const data = await service.exportStream(req);
       return res.success('Exporting all data via stream', data, { stream: true });
     } catch (err: any) {
       const errMessage = err?.message ?? 'Cannot export all data';

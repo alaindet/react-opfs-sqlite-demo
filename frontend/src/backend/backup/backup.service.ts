@@ -1,11 +1,13 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { downloadZip, InputWithMeta, InputWithSizeMeta } from 'client-zip';
+import { downloadZip, InputWithSizeMeta, makeZip } from 'client-zip';
 import JSZip from 'jszip';
 
 import { Logger } from '../logger';
 import { OpfsDirectoryController } from '../opfs';
 import { DATABASE_FILENAME, IMAGES_DIR } from '../constants';
 import { DatabaseService } from '../database/database.service';
+import { ExportProgress } from './types';
+import { WorkerRequest, WorkerResponse, workerSuccessResponse } from '../worker-message-broker';
 import { download } from '../utils';
 
 export class BackupService {
@@ -26,55 +28,78 @@ export class BackupService {
     this.#fs = fs;
   }
 
-  async exportStream(): Promise<Response> {
-    return downloadZip(this.#exportStream());
+  async exportStream(req: WorkerRequest): Promise<
+    ReadableStream<Uint8Array<ArrayBuffer>> | null
+  > {
+    return downloadZip(this.#exportStream(req)).body;
   }
 
-  async* #exportStream(): AsyncGenerator<InputWithMeta | InputWithSizeMeta> {
+  async* #exportStream(req: WorkerRequest): AsyncGenerator<InputWithSizeMeta> {
     
     const imagesDir = await this.#fs.dirHandle.getDirectoryHandle(IMAGES_DIR);
 
     let totalFiles = 1; // Start from 1 to account for the database file
-    let processedFiles = 0;
     for await (const _ of imagesDir.keys()) {
       totalFiles++;
     }
 
-    // TODO
+    const progress = this.#createExportProgress(req, totalFiles);
     const notifyProgress = () => {
-      processedFiles++;
-      self.postMessage({ 
-        type: 'EXPORT_PROGRESS', 
-        current: processedFiles,
-        total: totalFiles,
-        percent: Math.round((processedFiles / totalFiles) * 100),
-      });
+      const progressData = progress();
+      this.#logger.trace('Export progress', progressData);
+      this.#ctx.postMessage(progressData);
     };
-
     const dbBuffer = await this.#readDb();
 
-    yield {
+    const exportItem: InputWithSizeMeta = {
       name: DATABASE_FILENAME,
       lastModified: new Date(),
       input: dbBuffer,
-    } as InputWithSizeMeta;
-    // notifyProgress(); // TODO
+    };
+
+    await this.#wait();
+    yield exportItem;
+    notifyProgress();
     
     for await (const [name, handle] of imagesDir.entries()) {
-      if (handle.kind === 'file') {
-        const fileHandle = handle as FileSystemFileHandle;
-        const file = await fileHandle.getFile();
-        const data = await file.arrayBuffer();
-
-        yield {
-          name,
-          lastModified: new Date(),
-          input: data,
-        } as InputWithSizeMeta;
-        // notifyProgress(); // TODO
+      if (handle.kind !== 'file') {
+        continue;
       }
+
+      const fileHandle = handle as FileSystemFileHandle;
+      const file = await fileHandle.getFile();
+      const data = await file.arrayBuffer();
+
+      const exportItem: InputWithSizeMeta = {
+        name,
+        lastModified: new Date(),
+        input: data,
+      }; 
+
+      await this.#wait();
+      yield exportItem;
+      notifyProgress();
     }
-  };
+  }
+
+  #wait(delay = 2_000): Promise<void> {
+    return new Promise(done => setTimeout(done, delay));
+  }
+
+  #createExportProgress(req: WorkerRequest, totalFiles: number) {
+    let currentFile = 0;
+
+    return (): WorkerResponse<ExportProgress> => {
+      currentFile++;
+
+      return workerSuccessResponse.progress(req, 'Exporting in progress', {
+        name: 'EXPORT_PROGRESS',
+        currentFile,
+        totalFiles,
+        percent: Math.round((currentFile / totalFiles) * 100),
+      });
+    };
+  }
 
   async export(): Promise<ArrayBuffer> {
     const zip = new JSZip();

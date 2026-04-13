@@ -1,4 +1,5 @@
 import { CreateRecipeDto, Recipe } from '../types';
+import { ExportProgress } from './backup/types';
 import { BACKEND_ACTION } from './constants';
 import { enforceDataPersistance } from './opfs/functions';
 import { WorkerClient, WorkerResponse } from './worker-message-broker';
@@ -25,8 +26,10 @@ export const backend = {
     export(): Promise<WorkerResponse<ArrayBuffer>> {
       return w.request(BACKEND_ACTION.BACKUP.EXPORT);
     },
-    exportStream(): Promise<WorkerResponse<Response>> {
-      return w.request(BACKEND_ACTION.BACKUP.EXPORT_STREAM);
+    exportStream(
+      onProgress?: (res: WorkerResponse<ExportProgress>) => void,
+    ): Promise<WorkerResponse<ReadableStream>>  {
+      return w.request(BACKEND_ACTION.BACKUP.EXPORT_STREAM, null, { onProgress });
     },
     import(restoreFile: File) {
       return w.request(BACKEND_ACTION.BACKUP.IMPORT, restoreFile);
