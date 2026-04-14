@@ -31,6 +31,11 @@ export const backend = {
     ): Promise<WorkerSuccessResponse<ReadableStream>>  {
       return w.request(BACKEND_ACTION.BACKUP.EXPORT_STREAM, null, { onProgress });
     },
+    exportFflate(
+      onProgress?: (res: WorkerSuccessResponse<ExportProgress>) => void,
+    ): Promise<WorkerSuccessResponse<ReadableStream>>  {
+      return w.request(BACKEND_ACTION.BACKUP.EXPORT_FFLATE, null, { onProgress });
+    },
     import(restoreFile: File) {
       return w.request(BACKEND_ACTION.BACKUP.IMPORT, restoreFile);
     },

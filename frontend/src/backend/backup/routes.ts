@@ -3,6 +3,7 @@ import { Logger } from '../logger';
 import { OpfsDirectoryController } from '../opfs';
 import { WorkerAction } from '../worker-message-broker';
 import { BackupService } from './backup.service';
+import { createBackupExportFflateAction } from './export-fflate.action';
 import { createBackupExportStreamAction } from './export-stream.action';
 import { createBackupExportAction } from './export.action';
 import { createBackupImportAction } from './import.action';
@@ -21,5 +22,6 @@ export const backupRoutes = (
     createBackupExportStreamAction(logger, service),
     createBackupImportAction(logger, service),
     createBackupWipeAction(logger, service),
+    createBackupExportFflateAction(logger, service),
   ];
 };
