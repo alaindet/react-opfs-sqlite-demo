@@ -28,9 +28,235 @@ export class BackupService {
     this.#fs = fs;
   }
 
-  async exportFflate(req: WorkerRequest): Promise<any> {
-    // TODO...
+  async exportFflate(req: WorkerRequest): Promise<
+    ReadableStream<Uint8Array<ArrayBuffer>> | null
+  > {
+    // return ReadableStream.from(this.generateZipChunks());
+    const generator = this.generateZipChunks();
+
+    return new ReadableStream<Uint8Array<ArrayBuffer>>({
+      async pull(controller) {
+        const { value, done } = await generator.next();
+        if (done) {
+          controller.close();
+        } else {
+          controller.enqueue(value);
+        }
+      },
+      cancel() {
+        generator.return(undefined);
+      },
+    });
   }
+
+  private async *generateZipChunks(
+    prefetch = 4, // number of files to read ahead
+  ): AsyncGenerator<Uint8Array<ArrayBuffer>> {
+    let resolve: ((chunk: { data: Uint8Array; final: boolean }) => void) | null = null;
+    let error: Error | null = null;
+    const pending: { data: Uint8Array; final: boolean }[] = [];
+
+    const zip = new Zip();
+
+    zip.ondata = (err, chunk, final) => {
+      if (err) {
+        error = err;
+        resolve?.({ data: new Uint8Array(), final: true });
+        return;
+      }
+
+      const item = { data: chunk.slice(), final };
+      if (resolve) {
+        const fn = resolve as Function;
+        resolve = null;
+        fn(item);
+      } else {
+        pending.push(item);
+      }
+    };
+
+    const feedDone = this.#feedZipBuffered(zip, prefetch).catch((e) => {
+      error = e instanceof Error ? e : new Error(String(e));
+    });
+
+    while (true) {
+      const item = pending.shift() ?? await new Promise<{ data: Uint8Array; final: boolean }>((r) => {
+        resolve = r;
+      });
+
+      if (error) throw error;
+      yield item.data as Uint8Array<ArrayBuffer>;
+      if (item.final) break;
+    }
+
+    await feedDone;
+  }
+
+  /**
+   * Reads up to `prefetch` files ahead of what the zip is currently
+   * consuming. This overlaps OPFS I/O with zip output consumption.
+   *
+   * Think of it as a bounded channel of pre-read file buffers:
+   * the reader fills it up to `prefetch`, then blocks until a slot
+   * opens when the zip consumer takes one.
+   */
+  async #feedZipBuffered(zip: Zip, prefetch: number): Promise<void> {
+    // Database first (no prefetch needed, just one file)
+    const dbBuffer = await this.#readDb();
+    const dbEntry = new ZipPassThrough(DATABASE_FILENAME);
+    zip.add(dbEntry);
+    dbEntry.push(new Uint8Array(dbBuffer), true);
+
+    const imagesDir = await this.#fs.dirHandle.getDirectoryHandle(IMAGES_DIR);
+
+    // Bounded prefetch buffer — acts like a Go channel with capacity N
+    const buffer: { name: string; data: Uint8Array }[] = [];
+    let readerDone = false;
+    let slotAvailable: (() => void) | null = null;
+    let dataAvailable: (() => void) | null = null;
+
+    // Producer: reads files from OPFS into the buffer up to `prefetch`
+    const readAhead = async () => {
+      for await (const [name, handle] of imagesDir.entries()) {
+        if (handle.kind !== 'file') continue;
+
+        // If buffer is full, wait for the consumer to drain a slot
+        while (buffer.length >= prefetch) {
+          await new Promise<void>(fn => slotAvailable = fn);
+        }
+
+        const file = await (handle as FileSystemFileHandle).getFile();
+        const data = new Uint8Array(await file.arrayBuffer());
+        buffer.push({ name, data });
+
+        // Signal the consumer that data is available
+        if (dataAvailable) {
+          const fn = dataAvailable;
+          dataAvailable = null;
+          fn();
+        }
+      }
+
+      readerDone = true;
+      if (dataAvailable) {
+        const fn = dataAvailable as Function;
+        dataAvailable = null;
+        fn();
+      }
+    };
+
+    // Start the producer in the background
+    const readerPromise = readAhead();
+
+    // Consumer: takes pre-read files and pushes them into the zip
+    while (true) {
+      // Wait for the producer to provide something
+      while (buffer.length === 0 && !readerDone) {
+        await new Promise<void>((r) => { dataAvailable = r; });
+      }
+
+      const item = buffer.shift();
+      if (!item) break; // readerDone and buffer empty
+
+      // Open a slot for the producer
+      if (slotAvailable) {
+        const fn = slotAvailable as Function;
+        slotAvailable = null;
+        fn();
+      }
+
+      const entry = new ZipPassThrough(`${IMAGES_DIR}/${item.name}`);
+      zip.add(entry);
+      entry.push(item.data, true);
+    }
+
+    await readerPromise;
+    zip.end();
+  }
+
+  // #buildZipStream(): ReadableStream<Uint8Array<ArrayBuffer>> {
+  //   const chunks: Uint8Array[] = [];
+  //   let done = false;
+  //   let error: Error | null = null;
+  //   let waiting: (() => void) | null = null;
+
+  //   const zip = new Zip();
+
+  //   zip.ondata = (err, chunk, final) => {
+  //     if (err) {
+  //       error = err;
+  //     } else {
+  //       // fflate reuses buffers so this must be copied
+  //       chunks.push(chunk.slice());
+  //       if (final) {
+  //         done = true;
+  //       }
+  //     }
+
+  //     if (waiting) {
+  //       const resolve = waiting;
+  //       waiting = null;
+  //       resolve();
+  //     }
+  //   };
+
+  //   const feedPromise = this.#feedZip(zip);
+
+  //   feedPromise.catch((err) => {
+  //     error = err instanceof Error ? err : new Error(String(err));
+  //     if (waiting) {
+  //       const resolve = waiting;
+  //       waiting = null;
+  //       resolve();
+  //     }
+  //   });
+
+  //   return new ReadableStream<Uint8Array<ArrayBuffer>>({
+  //     async pull(controller) {
+
+  //       // If nothing is buffered yet and we're not done, wait for ondata
+  //       while (chunks.length === 0 && !done && !error) {
+  //         await new Promise<void>(fn => waiting = fn);
+  //       }
+
+  //       if (error) {
+  //         controller.error(error);
+  //         return;
+  //       }
+
+  //       // Drain all available chunks into the stream
+  //       for (const chunk of chunks.splice(0)) {
+  //         controller.enqueue(chunk as Uint8Array<ArrayBuffer>);
+  //       }
+
+  //       if (done) {
+  //         controller.close();
+  //       }
+  //     },
+  //   });
+  // }
+
+  // async #feedZip(zip: Zip): Promise<void> {
+
+  //   const dbBuffer = await this.#readDb();
+  //   const dbEntry = new ZipPassThrough(DATABASE_FILENAME);
+  //   zip.add(dbEntry);
+  //   dbEntry.push(new Uint8Array(dbBuffer), true); // true = final chunk
+
+  //   const imagesDir = await this.#fs.dirHandle.getDirectoryHandle(IMAGES_DIR);
+
+  //   for await (const [name, handle] of imagesDir.entries()) {
+  //     if (handle.kind !== 'file') continue;
+  //     const _handle = handle as FileSystemFileHandle;
+  //     const file = await _handle.getFile();
+  //     const data = new Uint8Array(await file.arrayBuffer());
+  //     const entry = new ZipPassThrough(`${IMAGES_DIR}/${name}`);
+  //     zip.add(entry);
+  //     entry.push(data, true);
+  //   }
+
+  //   zip.end();
+  // }
 
   async exportStream(req: WorkerRequest): Promise<
     ReadableStream<Uint8Array<ArrayBuffer>> | null

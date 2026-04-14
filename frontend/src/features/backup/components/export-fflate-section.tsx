@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 
 import { backend } from '../../../backend/backend';
 import { ExportProgress } from '../../../backend/backup/types';
+import { toFilenameDatetime } from '../../../backend/utils';
 
 export function ExportFflateSection() {
 
@@ -10,16 +11,47 @@ export function ExportFflateSection() {
 
   const handleDownload = useCallback(async () => {
     setIsLoading(true);
-    await backend.backup.exportFflate(res => console.log('progress', res));
+
+    const res = await backend.backup.exportFflate(res => {
+      console.log('progress', res);
+    });
+
+    if (res.error) {
+      alert(res.message);
+      setIsLoading(false);
+      return;
+    }
+
+    const handle = await window.showSaveFilePicker({
+      suggestedName: `backup.${toFilenameDatetime()}.zip`,
+      types: [
+        {
+          description: 'Exported recipes database',
+          accept: { 'application/zip': ['.zip'] },
+        },
+      ],
+    });
+
+    const writable = await handle.createWritable();
+
+    if (res.data) {
+      await res.data.pipeTo(writable);
+    } else {
+      const message = 'Response body is empty';
+      console.error(message);
+      alert(message);
+      await writable.close(); 
+    }
+
     setIsLoading(false);
   }, []);
 
   return (
     <section>
-      <h3>Export data (stream)</h3>
+      <h3>Export data (fflate stream)</h3>
 
       <button type="button" disabled={isLoading} onClick={handleDownload}>
-        Download backup data (stream)
+        Download backup data (fflate stream)
       </button>
 
       {isLoading && (

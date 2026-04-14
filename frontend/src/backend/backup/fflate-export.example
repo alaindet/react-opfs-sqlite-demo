@@ -1,0 +1,143 @@
+import { Database } from '@sqlite.org/sqlite-wasm';
+import { Zip, ZipDeflate, ZipPassThrough } from 'fflate';
+
+import { DATABASE_FILENAME, IMAGES_DIR } from '../constants';
+import { WorkerRequest } from '../worker-message-broker';
+
+export class BackupService {
+
+  constructor(
+    private db: Database,
+    private fs: FileSystemDirectoryHandle,
+  ) {}
+
+  async exportStream(req: WorkerRequest): Promise
+    ReadableStream<Uint8Array<ArrayBuffer>> | null
+  > {
+    return this.buildZipStream();
+  }
+
+  /**
+   * Bridges fflate's push-based Zip into a pull-based ReadableStream.
+   *
+   * fflate's Zip works by pushing chunks to an `ondata` callback.
+   * We collect those chunks into a buffer, and the ReadableStream's
+   * pull() drains them on demand. When fflate pushes faster than the
+   * stream consumes, chunks accumulate; when the stream pulls faster,
+   * pull() awaits the next push via a pending resolve.
+   */
+  private buildZipStream(): ReadableStream<Uint8Array<ArrayBuffer>> {
+    // Shared state between the fflate producer and the ReadableStream consumer
+    const chunks: Uint8Array[] = [];
+    let done = false;
+    let error: Error | null = null;
+    // When pull() runs but no chunks are available, it parks a resolve here
+    let waiting: (() => void) | null = null;
+
+    const zip = new Zip();
+
+    zip.ondata = (err, chunk, final) => {
+      if (err) {
+        error = err;
+      } else {
+        // IMPORTANT: fflate reuses buffers, so we must copy
+        chunks.push(chunk.slice());
+        if (final) done = true;
+      }
+      // Wake up pull() if it's waiting for data
+      if (waiting) {
+        const resolve = waiting;
+        waiting = null;
+        resolve();
+      }
+    };
+
+    // Kick off the async feeding in the background.
+    // We hold a reference to the promise so errors don't go unhandled.
+    const feedPromise = this.feedZip(zip);
+
+    // Catch feed errors and surface them through the stream
+    feedPromise.catch((err) => {
+      error = err instanceof Error ? err : new Error(String(err));
+      if (waiting) {
+        const resolve = waiting;
+        waiting = null;
+        resolve();
+      }
+    });
+
+    return new ReadableStream<Uint8Array<ArrayBuffer>>({
+      async pull(controller) {
+        // If nothing is buffered yet and we're not done, wait for ondata
+        while (chunks.length === 0 && !done && !error) {
+          await new Promise<void>((resolve) => {
+            waiting = resolve;
+          });
+        }
+
+        if (error) {
+          controller.error(error);
+          return;
+        }
+
+        // Drain all available chunks into the stream
+        for (const chunk of chunks.splice(0)) {
+          controller.enqueue(chunk as Uint8Array<ArrayBuffer>);
+        }
+
+        if (done) {
+          controller.close();
+        }
+      },
+    });
+  }
+
+  /**
+   * Reads files from OPFS and pushes them into the Zip one at a time.
+   * Each file is fully loaded into memory individually (not all at once),
+   * compressed, then discarded before moving to the next.
+   */
+  private async feedZip(zip: Zip): Promise<void> {
+    // 1. Database file — already compressed (SQLite), so store without deflating
+    const dbBuffer = await this.readDb();
+    const dbEntry = new ZipPassThrough(DATABASE_FILENAME);
+    zip.add(dbEntry);
+    dbEntry.push(new Uint8Array(dbBuffer), true); // true = final chunk
+
+    // 2. Image files — .webp is already compressed, so ZipPassThrough is ideal.
+    //    If you had uncompressed files, swap to ZipDeflate for those.
+    const imagesDir = await this.fs.getDirectoryHandle(IMAGES_DIR);
+
+    for await (const [name, handle] of imagesDir.entries()) {
+      if (handle.kind !== 'file') continue;
+
+      const file = await (handle as FileSystemFileHandle).getFile();
+      const data = new Uint8Array(await file.arrayBuffer());
+
+      const entry = new ZipPassThrough(`${IMAGES_DIR}/${name}`);
+      zip.add(entry);
+      entry.push(data, true);
+    }
+
+    // Signal that no more files will be added
+    zip.end();
+  }
+
+  private async readDb(): Promise<ArrayBuffer> {
+    const tempFilename = '.temp.db';
+    await this.safeDelete(tempFilename);
+    this.db.exec({ sql: `VACUUM INTO 'file:${tempFilename}?vfs=opfs'` });
+    const fileHandle = await this.fs.getFileHandle(tempFilename);
+    const tempFile = await fileHandle.getFile();
+    const tempBuffer = await tempFile.arrayBuffer();
+    await this.safeDelete(tempFilename);
+    return tempBuffer;
+  }
+
+  private async safeDelete(filename: string): Promise<void> {
+    try {
+      await this.fs.getFileHandle(filename, { create: false });
+      await this.fs.removeEntry(filename);
+    } catch {}
+  }
+}
