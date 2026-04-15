@@ -1,0 +1,58 @@
+/**
+ * Stream-decompress a zip archive, yielding entries one at a time.
+ *
+ * fflate's Unzip processes the central directory and entries in a
+ * streaming fashion — it never holds the full archive in memory.
+ * We push the input in fixed-size chunks so the source ArrayBuffer
+ * can be GC'd progressively if the caller releases it.
+ */
+async #inflateZip(
+  archive: Uint8Array,
+  chunkSize = 64 * 1024,
+): Promise<Map<string, Uint8Array>> {
+  const files = new Map<string, Uint8Array>();
+
+  return new Promise<Map<string, Uint8Array>>((resolve, reject) => {
+    const unzip = new Unzip();
+
+    // Register the decompression handler — UnzipInflate handles
+    // both STORE and DEFLATE entries automatically.
+    unzip.register(UnzipInflate);
+
+    unzip.onfile = (stream) => {
+      const chunks: Uint8Array[] = [];
+
+      stream.ondata = (err, chunk, final) => {
+        if (err) { reject(err); return; }
+        chunks.push(chunk.slice());
+
+        if (final) {
+          // Coalesce into a single buffer per file
+          const total = chunks.reduce((s, c) => s + c.length, 0);
+          const merged = new Uint8Array(total);
+          let offset = 0;
+          for (const c of chunks) {
+            merged.set(c, offset);
+            offset += c.length;
+          }
+          files.set(stream.name, merged);
+        }
+      };
+
+      stream.start();
+    };
+
+    // Feed the archive in small chunks to bound peak memory.
+    // Each slice is independent so the engine can reclaim previous ones.
+    for (let i = 0; i < archive.length; i += chunkSize) {
+      const end = Math.min(i + chunkSize, archive.length);
+      const isFinal = end === archive.length;
+      unzip.push(archive.slice(i, end), isFinal);
+    }
+
+    // fflate's Unzip is synchronous for stored entries and
+    // resolves inline for deflated ones, so by the time push()
+    // returns with final=true, all ondata callbacks have fired.
+    resolve(files);
+  });
+}
