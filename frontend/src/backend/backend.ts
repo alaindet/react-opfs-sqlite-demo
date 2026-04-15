@@ -1,5 +1,5 @@
 import { CreateRecipeDto, Recipe } from '../types';
-import { ExportProgress } from './backup/types';
+import { DataTransferProgress } from './backup/types';
 import { BACKEND_ACTION } from './constants';
 import { enforceDataPersistance } from './opfs/functions';
 import { WorkerClient, WorkerResponse, WorkerSuccessResponse } from './worker-message-broker';
@@ -23,17 +23,24 @@ export const backend = {
     },
   },
   backup: {
-    exportFflate(
-      onProgress?: (res: WorkerSuccessResponse<ExportProgress>) => void,
+    export(
+      onProgress?: (res: WorkerSuccessResponse<DataTransferProgress>) => void,
     ): Promise<WorkerSuccessResponse<ReadableStream>>  {
-      return w.request(BACKEND_ACTION.BACKUP.EXPORT_FFLATE, null, { onProgress });
+      return w.request(BACKEND_ACTION.BACKUP.EXPORT, null, {
+        onProgress,
+      });
     },
-    importFflate(
+
+    import(
       restoreFile: ReadableStream<Uint8Array>,
-      onProgress?: (res: WorkerSuccessResponse<ExportProgress>) => void,
+      onProgress?: (res: WorkerSuccessResponse<DataTransferProgress>) => void,
     ): Promise<WorkerSuccessResponse<any>> {
-      return w.request(BACKEND_ACTION.BACKUP.IMPORT_FFLATE, restoreFile, { onProgress });
+      return w.request(BACKEND_ACTION.BACKUP.IMPORT, restoreFile, {
+        onProgress,
+        transfer: true,
+      });
     },
+
     wipe() {
       return w.request(BACKEND_ACTION.BACKUP.WIPE);
     }

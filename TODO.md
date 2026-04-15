@@ -5,9 +5,9 @@
 - [x] How to download a stream for large database?
 - [x] Use ReadableStream for import/export
 - [x] Notify progress to the UI thread while downloading and uploading
-- [ ] ERROR: Downloading data post-wipe raises error
-- [ ] Use fflate for creating and reading .zip streams
-- [ ] Apply different compression levels when exporting: 6-8 for SQLite file, 0 for webp since it's already a compressed format
+- [x] ERROR: Downloading data post-wipe raises error
+- [x] Use fflate for creating and reading .zip streams
+- [x] Apply different compression levels when exporting: 6-8 for SQLite file, 0 for webp since it's already a compressed format
 - [ ] Minimize .zip dependencies
 - [ ] Use aliased imports
 - [ ] Move backend to "backend" package

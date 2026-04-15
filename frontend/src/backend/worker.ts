@@ -6,7 +6,7 @@ import { OpfsDirectoryController } from './opfs/dir.controller';
 import { WorkerRequest, WorkerRequestHandler, WorkerRequestRouter, WorkerResponder, WorkerState, WORKER_STATE, WorkerResponse } from './worker-message-broker';
 import { DATABASE_FILENAME, IMAGES_DIR } from './constants';
 import { recipesRoutes } from './recipes/routes';
-import { backupRoutes } from './backup/routes';
+import { backupRoutes } from './backup/actions/actions';
 import { DatabaseService } from './database/database.service';
 
 // State
@@ -87,7 +87,7 @@ async function handleRequest(req: WorkerRequest) {
   // Init router
   router = new Map<string, WorkerRequestHandler>([
     ...recipesRoutes(logger, dbService, images),
-    ...backupRoutes(logger, ctx, dbService, fs),
+    ...backupRoutes(ctx, logger, dbService, fs),
     // Add routes here...
   ].map(route => [route.action, route.handle]));
 

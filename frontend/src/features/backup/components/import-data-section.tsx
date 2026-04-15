@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 
 import { backend } from '../../../backend/backend';
 
-export function ImportFflateSection() {
+export function ImportDataSection() {
 
   const [isLoading, setIsLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -14,9 +14,25 @@ export function ImportFflateSection() {
       return;
     }
 
+    // TODO
+    // // Quick example of reading the count from a Blob/File
+    // async function getZipItemCount(file) {
+    //   const footer = await file.slice(-128).arrayBuffer();
+    //   const view = new DataView(footer);
+      
+    //   // Search backwards for the EOCD signature: 0x06054b50
+    //   for (let i = footer.byteLength - 22; i >= 0; i--) {
+    //     if (view.getUint32(i, true) === 0x06054b50) {
+    //       return view.getUint16(i + 10, true); // Total entries
+    //     }
+    //   }
+    //   return null;
+    // }
+
     setIsLoading(true);
     try {
-      const res = await backend.backup.importFflate(restoreFile.stream(), res => {
+      const res = await backend.backup.import(restoreFile.stream(), res => {
+        // TODO
         console.log('progress', res);
       });
       alert(res.message);
@@ -30,7 +46,7 @@ export function ImportFflateSection() {
 
   return (
     <section>
-      <h3>Upload backup data</h3>
+      <h3>Import data (fflate stream)</h3>
       
       <input
         type="file"
@@ -44,7 +60,7 @@ export function ImportFflateSection() {
         disabled={isLoading}
         onClick={handleUploadBackupData}
       >
-        Upload backup data
+        Import data 
       </button>
     </section>
   );

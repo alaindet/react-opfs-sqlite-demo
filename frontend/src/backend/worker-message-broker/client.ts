@@ -28,7 +28,10 @@ export class WorkerClient {
   >(
     action: string,
     data?: TRequest,
-    options?: { onProgress?: (res: WorkerSuccessResponse<TProgress>) => void },
+    options?: {
+      onProgress?: (res: WorkerSuccessResponse<TProgress>) => void;
+      transfer?: boolean;
+    },
   ): Promise<TResponse> {
     const requestId = crypto.randomUUID();
 
@@ -47,8 +50,15 @@ export class WorkerClient {
         this.#progressTrackers.set(requestId, { request, onProgress });
       }
 
+      // Transfer input data?
+      if (!!options?.transfer) {
+        this.#worker.postMessage(request, [request.data!]);
+      }
+      
       // Send the request to the backend
-      this.#worker.postMessage(request);
+      else {
+        this.#worker.postMessage(request);  
+      }
     });
   }
 

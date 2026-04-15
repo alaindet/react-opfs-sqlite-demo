@@ -1,18 +1,19 @@
 import { useCallback, useState } from 'react';
 
 import { backend } from '../../../backend/backend';
-import { ExportProgress } from '../../../backend/backup/types';
 import { toFilenameDatetime } from '../../../backend/utils';
+import { DataTransferProgress } from '../../../backend/backup/types';
 
-export function ExportFflateSection() {
+export function ExportDataSection() {
 
   const [isLoading, setIsLoading] = useState(false);
-  const [progress, setProgress] = useState<ExportProgress | null>(null);
+  const [progress, setProgress] = useState<DataTransferProgress | null>(null);
 
   const handleDownload = useCallback(async () => {
     setIsLoading(true);
 
-    const res = await backend.backup.exportFflate(res => {
+    const res = await backend.backup.export(res => {
+      // TODO
       console.log('progress', res);
     });
 
@@ -51,7 +52,7 @@ export function ExportFflateSection() {
       <h3>Export data (fflate stream)</h3>
 
       <button type="button" disabled={isLoading} onClick={handleDownload}>
-        Download backup data (fflate stream)
+        Download data
       </button>
 
       {isLoading && (
