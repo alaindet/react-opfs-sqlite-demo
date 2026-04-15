@@ -1,7 +1,7 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
 import { downloadZip, InputWithSizeMeta } from 'client-zip';
 import JSZip from 'jszip';
-import { Zip, ZipPassThrough, ZipDeflate } from 'fflate';
+import { Zip, ZipPassThrough, ZipDeflate, Unzip, UnzipInflate } from 'fflate';
 
 import { DATABASE_FILENAME, IMAGES_DIR } from '../constants';
 import { DatabaseService } from '../database/database.service';
@@ -174,272 +174,302 @@ export class BackupService {
     zip.end();
   }
 
-  // #buildZipStream(): ReadableStream<Uint8Array<ArrayBuffer>> {
-  //   const chunks: Uint8Array[] = [];
-  //   let done = false;
-  //   let error: Error | null = null;
-  //   let waiting: (() => void) | null = null;
+  // async importFflate(stream: ReadableStream<Uint8Array>): Promise<void> {
 
-  //   const zip = new Zip();
+  //   const extractedFiles = await this.#inflateZip(stream);
 
-  //   zip.ondata = (err, chunk, final) => {
-  //     if (err) {
-  //       error = err;
-  //     } else {
-  //       // fflate reuses buffers so this must be copied
-  //       chunks.push(chunk.slice());
-  //       if (final) {
-  //         done = true;
-  //       }
-  //     }
+  //   const dbFile = extractedFiles.get(DATABASE_FILENAME);
+  //   if (!dbFile) {
+  //     throw new Error('No database file found in zip');
+  //   }
 
-  //     if (waiting) {
-  //       const resolve = waiting;
-  //       waiting = null;
-  //       resolve();
-  //     }
-  //   };
+  //   this.#db.db.close();
 
-  //   const feedPromise = this.#feedZip(zip);
-
-  //   feedPromise.catch((err) => {
-  //     error = err instanceof Error ? err : new Error(String(err));
-  //     if (waiting) {
-  //       const resolve = waiting;
-  //       waiting = null;
-  //       resolve();
-  //     }
+  //   const sqlite3 = await sqlite3InitModule({
+  //     print: this.#logger.trace,
+  //     printErr: this.#logger.error,
   //   });
 
-  //   return new ReadableStream<Uint8Array<ArrayBuffer>>({
-  //     async pull(controller) {
+  //   if (!('opfs' in sqlite3)) {
+  //     throw new Error('OPFS not available, cannot import database');
+  //   }
 
-  //       // If nothing is buffered yet and we're not done, wait for ondata
-  //       while (chunks.length === 0 && !done && !error) {
-  //         await new Promise<void>(fn => waiting = fn);
-  //       }
+  //   await sqlite3.oo1.OpfsDb.importDb(DATABASE_FILENAME, dbFile);
+  //   this.#db.setDb(new sqlite3.oo1.OpfsDb(DATABASE_FILENAME));
 
-  //       if (error) {
-  //         controller.error(error);
-  //         return;
-  //       }
+  //   // 3. Clear old images, write new ones one-by-one
+  //   await this.#fs.safeDeleteDir(IMAGES_DIR);
+  //   const imagesDirController = await this.#fs.getDir(IMAGES_DIR);
+  //   const imagesDir = imagesDirController.dirHandle;
 
-  //       // Drain all available chunks into the stream
-  //       for (const chunk of chunks.splice(0)) {
-  //         controller.enqueue(chunk as Uint8Array<ArrayBuffer>);
-  //       }
+  //   for (const [path, data] of files) {
 
-  //       if (done) {
-  //         controller.close();
+  //     if (!path.startsWith(`${IMAGES_DIR}/`)) {
+  //       continue;
+  //     }
+
+  //     const name = path.slice(IMAGES_DIR.length + 1);
+  //     if (!name || name.includes('/')) {
+  //       continue;
+  //     }
+
+  //     const fileHandle = await imagesDir.getFileHandle(name, { create: true });
+  //     const accessHandle = await fileHandle.createSyncAccessHandle();
+  //     try {
+  //       accessHandle.write(data, { at: 0 });
+  //       accessHandle.truncate(data.byteLength);
+  //       accessHandle.flush();
+  //     } finally {
+  //       accessHandle.close();
+  //     }
+  //   }
+  // }
+
+  // async #inflateZip(
+  //   zipStream: ReadableStream<Uint8Array>,
+  // ): Promise<Map<string, Uint8Array>> {
+  //   const files = new Map<string, Uint8Array>();
+
+  //   return new Promise<Map<string, Uint8Array>>(async (resolve, reject) => {
+  //     const unzip = new Unzip();
+  //     unzip.register(UnzipInflate);
+
+  //     // This runs every time a file from the archive is loaded into memory
+  //     // while consuming the stream (see below)
+  //     //
+  //     // This acceps a stream of the extracted file, consumes it and adds its
+  //     // data to the map of extracted files from the archive
+  //     unzip.onfile = fileStream => {
+  //       const chunks: Uint8Array[] = [];
+
+  //       // Drain the whole file stream
+  //       fileStream.ondata = (err, chunk, final) => {
+
+  //         if (err) {
+  //           reject(err);
+  //           return;
+  //         }
+
+  //         // The chunk is internally re-used, so copy it before storing it
+  //         chunks.push(chunk.slice());
+
+  //         if (final) {
+  //           const bytesLength = chunks.reduce((b, chunk) => b + chunk.length, 0);
+  //           const fileData = new Uint8Array(bytesLength);
+
+  //           let offset = 0;
+  //           for (const chunk of chunks) {
+  //             fileData.set(chunk, offset);
+  //             offset += chunk.length;
+  //           }
+  //           files.set(fileStream.name, fileData);
+  //         }
+  //       };
+
+  //       fileStream.start();
+  //     };
+
+  //     // Consume the input stream
+  //     try {
+  //       const zipReader = zipStream.getReader();
+
+  //       while (true) {
+  //         const { value, done } = await zipReader.read();
+  //         if (done) {
+  //           unzip.push(new Uint8Array(0), true);
+  //           resolve(files);
+  //           return;
+  //         }
+  //         unzip.push(value, false);
   //       }
-  //     },
+  //     } catch (err) {
+  //       reject(err);
+  //     }
   //   });
   // }
 
-  // async #feedZip(zip: Zip): Promise<void> {
+  // async exportStream(req: WorkerRequest): Promise<
+  //   ReadableStream<Uint8Array<ArrayBuffer>> | null
+  // > {
+  //   return downloadZip(this.#exportStream(req)).body;
+  // }
 
-  //   const dbBuffer = await this.#readDb();
-  //   const dbEntry = new ZipPassThrough(DATABASE_FILENAME);
-  //   zip.add(dbEntry);
-  //   dbEntry.push(new Uint8Array(dbBuffer), true); // true = final chunk
+  // /**
+  //  * This generates data sequentially to be streamed into the .zip file
+  //  */
+  // async* #exportStream(req: WorkerRequest): AsyncGenerator<InputWithSizeMeta> {
+
+  //   const startMessage = 'Exporting data start';
+  //   this.#logger.trace(startMessage);
+  //   const startRes = workerSuccessResponse.progressStart(req, startMessage, null);
+  //   this.#ctx.postMessage(startRes);
 
   //   const imagesDir = await this.#fs.dirHandle.getDirectoryHandle(IMAGES_DIR);
 
-  //   for await (const [name, handle] of imagesDir.entries()) {
-  //     if (handle.kind !== 'file') continue;
-  //     const _handle = handle as FileSystemFileHandle;
-  //     const file = await _handle.getFile();
-  //     const data = new Uint8Array(await file.arrayBuffer());
-  //     const entry = new ZipPassThrough(`${IMAGES_DIR}/${name}`);
-  //     zip.add(entry);
-  //     entry.push(data, true);
+  //   let totalFiles = 1; // Start from 1 to account for the database file
+  //   for await (const _ of imagesDir.keys()) {
+  //     totalFiles++;
   //   }
 
-  //   zip.end();
+  //   const progress = this.#createExportProgress(req, totalFiles);
+  //   const notifyProgress = () => {
+  //     const progressData = progress();
+  //     this.#logger.trace('Export progress', progressData);
+  //     this.#ctx.postMessage(progressData);
+  //   };
+  //   const dbBuffer = await this.#readDb();
+
+  //   const exportItem: InputWithSizeMeta = {
+  //     name: DATABASE_FILENAME,
+  //     lastModified: new Date(),
+  //     input: dbBuffer,
+  //   };
+
+  //   yield exportItem;
+  //   notifyProgress();
+    
+  //   for await (const [name, handle] of imagesDir.entries()) {
+  //     if (handle.kind !== 'file') {
+  //       continue;
+  //     }
+
+  //     const fileHandle = handle as FileSystemFileHandle;
+  //     const file = await fileHandle.getFile();
+  //     const data = await file.arrayBuffer();
+
+  //     const exportItem: InputWithSizeMeta = {
+  //       name: `${IMAGES_DIR}/${name}`,
+  //       lastModified: new Date(),
+  //       input: data,
+  //     }; 
+
+  //     yield exportItem;
+  //     notifyProgress();
+  //   }
+
+  //   const endMessage = 'Exporting data end';
+  //   this.#logger.trace(endMessage);
+  //   const endRes = workerSuccessResponse.progressStart(req, endMessage, null);
+  //   this.#ctx.postMessage(endRes);
   // }
 
-  async exportStream(req: WorkerRequest): Promise<
-    ReadableStream<Uint8Array<ArrayBuffer>> | null
-  > {
-    return downloadZip(this.#exportStream(req)).body;
-  }
+  // #createExportProgress(req: WorkerRequest, totalFiles: number) {
+  //   let currentFile = 0;
 
-  /**
-   * This generates data sequentially to be streamed into the .zip file
-   */
-  async* #exportStream(req: WorkerRequest): AsyncGenerator<InputWithSizeMeta> {
+  //   return (): WorkerResponse<ExportProgress> => {
+  //     currentFile++;
 
-    const startMessage = 'Exporting data start';
-    this.#logger.trace(startMessage);
-    const startRes = workerSuccessResponse.progressStart(req, startMessage, null);
-    this.#ctx.postMessage(startRes);
+  //     return workerSuccessResponse.progress(req, 'Exporting in progress', {
+  //       name: 'EXPORT_PROGRESS',
+  //       currentFile,
+  //       totalFiles,
+  //       percent: Math.round((currentFile / totalFiles) * 100),
+  //     });
+  //   };
+  // }
 
-    const imagesDir = await this.#fs.dirHandle.getDirectoryHandle(IMAGES_DIR);
+  // async export(): Promise<ArrayBuffer> {
+  //   const zip = new JSZip();
+  //   const dbBuffer = await this.#readDb();
+  //   zip.file(DATABASE_FILENAME, dbBuffer);
 
-    let totalFiles = 1; // Start from 1 to account for the database file
-    for await (const _ of imagesDir.keys()) {
-      totalFiles++;
-    }
+  //   const imagesDir = zip.folder(IMAGES_DIR)!;
+  //   const images = await this.#readImages();
+  //   let imagesTotalBytesLength = 0;
+  //   for (const { name, data } of images) {
+  //     imagesTotalBytesLength += data.byteLength;
+  //     imagesDir.file(name, data);
+  //   }
 
-    const progress = this.#createExportProgress(req, totalFiles);
-    const notifyProgress = () => {
-      const progressData = progress();
-      this.#logger.trace('Export progress', progressData);
-      this.#ctx.postMessage(progressData);
-    };
-    const dbBuffer = await this.#readDb();
+  //   const dbReport = this.#getDbReport(dbBuffer.byteLength);
+  //   const imagesSize = this.#getImagesReport(images.length, imagesTotalBytesLength);
+  //   this.#logger.trace(`Exporting data: database (${dbReport}), images (${imagesSize})`);
 
-    const exportItem: InputWithSizeMeta = {
-      name: DATABASE_FILENAME,
-      lastModified: new Date(),
-      input: dbBuffer,
-    };
+  //   return zip.generateAsync({
+  //     type: 'arraybuffer',
+  //     compression: 'DEFLATE',
+  //     compressionOptions: { level: 6 },
+  //   });
+  // }
 
-    yield exportItem;
-    notifyProgress();
-    
-    for await (const [name, handle] of imagesDir.entries()) {
-      if (handle.kind !== 'file') {
-        continue;
-      }
+  // async import(data: ArrayBuffer): Promise<void> {
+  //   const zip = await JSZip.loadAsync(data);
 
-      const fileHandle = handle as FileSystemFileHandle;
-      const file = await fileHandle.getFile();
-      const data = await file.arrayBuffer();
+  //   // Extract the database file from the archive
+  //   const extractedDbFile = zip.file(DATABASE_FILENAME);
+  //   if (!extractedDbFile) {
+  //     const message = 'No database file found in zip';
+  //     this.#logger.error(message);
+  //     throw new Error(message);
+  //   }
 
-      const exportItem: InputWithSizeMeta = {
-        name: `${IMAGES_DIR}/${name}`,
-        lastModified: new Date(),
-        input: data,
-      }; 
+  //   // Close the existing database
+  //   this.#db.db.close();
 
-      yield exportItem;
-      notifyProgress();
-    }
+  //   // Open the new database connection
+  //   const sqlite3 = await sqlite3InitModule({
+  //     print: this.#logger.trace,
+  //     printErr: this.#logger.error,
+  //   });
 
-    const endMessage = 'Exporting data end';
-    this.#logger.trace(endMessage);
-    const endRes = workerSuccessResponse.progressStart(req, endMessage, null);
-    this.#ctx.postMessage(endRes);
-  }
+  //   // ERROR: OPFS not available
+  //   if (!('opfs' in sqlite3)) {
+  //     const message = 'OPFS not available, cannot import database';
+  //     this.#logger.error(message);
+  //     throw new Error(message);
+  //   }
 
-  #createExportProgress(req: WorkerRequest, totalFiles: number) {
-    let currentFile = 0;
+  //   // Import the database data
+  //   const dbData = await extractedDbFile.async('arraybuffer');
+  //   await sqlite3.oo1.OpfsDb.importDb(
+  //     `/${DATABASE_FILENAME}`,
+  //     new Uint8Array(dbData),
+  //   );
 
-    return (): WorkerResponse<ExportProgress> => {
-      currentFile++;
+  //   // Store the reference to the new database connection
+  //   this.#db.setDb(new sqlite3.oo1.OpfsDb(DATABASE_FILENAME));
 
-      return workerSuccessResponse.progress(req, 'Exporting in progress', {
-        name: 'EXPORT_PROGRESS',
-        currentFile,
-        totalFiles,
-        percent: Math.round((currentFile / totalFiles) * 100),
-      });
-    };
-  }
+  //   // Remove all existing images
+  //   await this.#fs.safeDeleteDir(IMAGES_DIR);
 
-  async export(): Promise<ArrayBuffer> {
-    const zip = new JSZip();
-    const dbBuffer = await this.#readDb();
-    zip.file(DATABASE_FILENAME, dbBuffer);
+  //   const extractedImagesDir = zip.folder(IMAGES_DIR);
 
-    const imagesDir = zip.folder(IMAGES_DIR)!;
-    const images = await this.#readImages();
-    let imagesTotalBytesLength = 0;
-    for (const { name, data } of images) {
-      imagesTotalBytesLength += data.byteLength;
-      imagesDir.file(name, data);
-    }
+  //   // ERROR: If no images to import from the .zip file
+  //   if (!extractedImagesDir) {
+  //     const message = 'No images to import found';
+  //     this.#logger.error(message);
+  //     throw new Error(message);
+  //   }
 
-    const dbReport = this.#getDbReport(dbBuffer.byteLength);
-    const imagesSize = this.#getImagesReport(images.length, imagesTotalBytesLength);
-    this.#logger.trace(`Exporting data: database (${dbReport}), images (${imagesSize})`);
+  //   // Get the images directory handle on OPFS
+  //   const imagesDirController = await this.#fs.getDir(IMAGES_DIR);
+  //   const imagesDir = imagesDirController.dirHandle;
 
-    return zip.generateAsync({
-      type: 'arraybuffer',
-      compression: 'DEFLATE',
-      compressionOptions: { level: 6 },
-    });
-  }
+  //   // Read all images from .zip in memory
+  //   // TODO: Stream/chunk?
+  //   const imageFiles: FileRestored[] = [];
+  //   extractedImagesDir.forEach((name, imageFile) => {
+  //     if (!imageFile.dir) {
+  //       const data$ = imageFile.async('arraybuffer');
+  //       imageFiles.push({ name, data$ });
+  //     }
+  //   });
 
-  async import(data: ArrayBuffer): Promise<void> {
-    const zip = await JSZip.loadAsync(data);
-
-    // Extract the database file from the archive
-    const extractedDbFile = zip.file(DATABASE_FILENAME);
-    if (!extractedDbFile) {
-      const message = 'No database file found in zip';
-      this.#logger.error(message);
-      throw new Error(message);
-    }
-
-    // Close the existing database
-    this.#db.db.close();
-
-    // Open the new database connection
-    const sqlite3 = await sqlite3InitModule({
-      print: this.#logger.trace,
-      printErr: this.#logger.error,
-    });
-
-    // ERROR: OPFS not available
-    if (!('opfs' in sqlite3)) {
-      const message = 'OPFS not available, cannot import database';
-      this.#logger.error(message);
-      throw new Error(message);
-    }
-
-    // Import the database data
-    const dbData = await extractedDbFile.async('arraybuffer');
-    await sqlite3.oo1.OpfsDb.importDb(
-      `/${DATABASE_FILENAME}`,
-      new Uint8Array(dbData),
-    );
-
-    // Store the reference to the new database connection
-    this.#db.setDb(new sqlite3.oo1.OpfsDb(DATABASE_FILENAME));
-
-    // Remove all existing images
-    await this.#fs.safeDeleteDir(IMAGES_DIR);
-
-    const extractedImagesDir = zip.folder(IMAGES_DIR);
-
-    // ERROR: If no images to import from the .zip file
-    if (!extractedImagesDir) {
-      const message = 'No images to import found';
-      this.#logger.error(message);
-      throw new Error(message);
-    }
-
-    // Get the images directory handle on OPFS
-    const imagesDirController = await this.#fs.getDir(IMAGES_DIR);
-    const imagesDir = imagesDirController.dirHandle;
-
-    // Read all images from .zip in memory
-    // TODO: Stream/chunk?
-    const imageFiles: FileRestored[] = [];
-    extractedImagesDir.forEach((name, imageFile) => {
-      if (!imageFile.dir) {
-        const data$ = imageFile.async('arraybuffer');
-        imageFiles.push({ name, data$ });
-      }
-    });
-
-    // Write extracted images into the OPFS
-    for await (const { name, data$ } of imageFiles) {
-      const buffer = await data$;
-      const data = new Uint8Array(buffer);
-      const fileHandle = await imagesDir.getFileHandle(name, { create: true });
-      const accessHandle = await fileHandle.createSyncAccessHandle();
-      try {
-        accessHandle.write(data, { at: 0 });
-        accessHandle.truncate(data.byteLength);
-        accessHandle.flush();
-      } finally {
-        accessHandle.close();
-      }
-    }
-  }
+  //   // Write extracted images into the OPFS
+  //   for await (const { name, data$ } of imageFiles) {
+  //     const buffer = await data$;
+  //     const data = new Uint8Array(buffer);
+  //     const fileHandle = await imagesDir.getFileHandle(name, { create: true });
+  //     const accessHandle = await fileHandle.createSyncAccessHandle();
+  //     try {
+  //       accessHandle.write(data, { at: 0 });
+  //       accessHandle.truncate(data.byteLength);
+  //       accessHandle.flush();
+  //     } finally {
+  //       accessHandle.close();
+  //     }
+  //   }
+  // }
 
   async wipe(): Promise<void> {
     // TODO: Make more generic?
@@ -449,17 +479,17 @@ export class BackupService {
     this.#logger.trace('Wiped images');
   }
 
-  #getDbReport(bytesLength: number): string {
-    const kb = bytesLength / 1024;
-    const mb = kb / 1024;
-    return `${mb.toFixed(3)} MB`;
-  }
+  // #getDbReport(bytesLength: number): string {
+  //   const kb = bytesLength / 1024;
+  //   const mb = kb / 1024;
+  //   return `${mb.toFixed(3)} MB`;
+  // }
 
-  #getImagesReport(filesCount: number, bytesLength: number): string {
-    const kb = bytesLength / 1024;
-    const mb = kb / 1024;
-    return `${filesCount} images, ${mb} MB total`;
-  }
+  // #getImagesReport(filesCount: number, bytesLength: number): string {
+  //   const kb = bytesLength / 1024;
+  //   const mb = kb / 1024;
+  //   return `${filesCount} images, ${mb} MB total`;
+  // }
 
   async #readDb(): Promise<ArrayBuffer> {
     const tempFilename = '.temp.db';
@@ -471,30 +501,30 @@ export class BackupService {
     return tempBuffer;
   }
 
-  async #readImages(): Promise<FileBackup[]> {
-    const rootDir = this.#fs.dirHandle;
-    const imagesDir = await rootDir.getDirectoryHandle(IMAGES_DIR);
-    const files: FileBackup[] = [];
+  // async #readImages(): Promise<FileBackup[]> {
+  //   const rootDir = this.#fs.dirHandle;
+  //   const imagesDir = await rootDir.getDirectoryHandle(IMAGES_DIR);
+  //   const files: FileBackup[] = [];
 
-    for await (const [name, handle] of imagesDir.entries()) {
-      if (handle.kind === 'file') {
-        const fileHandle = handle as FileSystemFileHandle;
-        const file = await fileHandle.getFile();
-        const fileData = await file.arrayBuffer();
-        files.push({ name, data: fileData });
-      }
-    }
+  //   for await (const [name, handle] of imagesDir.entries()) {
+  //     if (handle.kind === 'file') {
+  //       const fileHandle = handle as FileSystemFileHandle;
+  //       const file = await fileHandle.getFile();
+  //       const fileData = await file.arrayBuffer();
+  //       files.push({ name, data: fileData });
+  //     }
+  //   }
 
-    return files;
-  }
+  //   return files;
+  // }
 }
 
-type FileBackup = {
-  name: string;
-  data: ArrayBuffer;
-};
+// type FileBackup = {
+//   name: string;
+//   data: ArrayBuffer;
+// };
 
-type FileRestored = {
-  name: string;
-  data$: Promise<ArrayBuffer>;
-};
+// type FileRestored = {
+//   name: string;
+//   data$: Promise<ArrayBuffer>;
+// };

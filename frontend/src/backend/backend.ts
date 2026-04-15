@@ -23,21 +23,16 @@ export const backend = {
     },
   },
   backup: {
-    export(): Promise<WorkerResponse<ArrayBuffer>> {
-      return w.request(BACKEND_ACTION.BACKUP.EXPORT);
-    },
-    exportStream(
-      onProgress?: (res: WorkerSuccessResponse<ExportProgress>) => void,
-    ): Promise<WorkerSuccessResponse<ReadableStream>>  {
-      return w.request(BACKEND_ACTION.BACKUP.EXPORT_STREAM, null, { onProgress });
-    },
     exportFflate(
       onProgress?: (res: WorkerSuccessResponse<ExportProgress>) => void,
     ): Promise<WorkerSuccessResponse<ReadableStream>>  {
       return w.request(BACKEND_ACTION.BACKUP.EXPORT_FFLATE, null, { onProgress });
     },
-    import(restoreFile: File) {
-      return w.request(BACKEND_ACTION.BACKUP.IMPORT, restoreFile);
+    importFflate(
+      restoreFile: ReadableStream<Uint8Array>,
+      onProgress?: (res: WorkerSuccessResponse<ExportProgress>) => void,
+    ): Promise<WorkerSuccessResponse<any>> {
+      return w.request(BACKEND_ACTION.BACKUP.IMPORT_FFLATE, restoreFile, { onProgress });
     },
     wipe() {
       return w.request(BACKEND_ACTION.BACKUP.WIPE);

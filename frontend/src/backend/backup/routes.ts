@@ -4,9 +4,7 @@ import { OpfsDirectoryController } from '../opfs';
 import { WorkerAction } from '../worker-message-broker';
 import { BackupService } from './backup.service';
 import { createBackupExportFflateAction } from './export-fflate.action';
-import { createBackupExportStreamAction } from './export-stream.action';
-import { createBackupExportAction } from './export.action';
-import { createBackupImportAction } from './import.action';
+import { createBackupImportFflateAction } from './import-fflate.action';
 import { createBackupWipeAction } from './wipe.action';
 
 export const backupRoutes = (
@@ -18,10 +16,11 @@ export const backupRoutes = (
   const service = new BackupService(logger, ctx, db, fs);
 
   return [
-    createBackupExportAction(logger, service),
-    createBackupExportStreamAction(logger, service),
-    createBackupImportAction(logger, service),
-    createBackupWipeAction(logger, service),
+    // createBackupExportAction(logger, service),
+    // createBackupExportStreamAction(logger, service),
     createBackupExportFflateAction(logger, service),
+    // createBackupImportAction(logger, service),
+    createBackupImportFflateAction(logger, db, fs, ctx),
+    createBackupWipeAction(logger, service),
   ];
 };

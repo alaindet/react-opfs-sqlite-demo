@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 
 import { backend } from '../../../backend/backend';
 
-export function ImportDataSection() {
+export function ImportFflateSection() {
 
   const [isLoading, setIsLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -16,7 +16,9 @@ export function ImportDataSection() {
 
     setIsLoading(true);
     try {
-      const res = await backend.backup.import(restoreFile);
+      const res = await backend.backup.importFflate(restoreFile.stream(), res => {
+        console.log('progress', res);
+      });
       alert(res.message);
     } catch (err: any) {
       const errMessage = err?.message ?? 'Error importing data';
