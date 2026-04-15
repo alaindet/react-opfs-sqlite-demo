@@ -1,7 +1,7 @@
-import { DatabaseService } from '../../database/database.service';
-import { Logger } from '../../logger';
-import { OpfsDirectoryController } from '../../opfs';
-import { WorkerAction } from '../../worker-message-broker';
+import { DatabaseService } from '../../../core/database';
+import { Logger } from '../../../core/logger';
+import { OpfsDirectoryController } from '../../../core/opfs';
+import { WorkerAction } from '../../../core/worker-message-broker';
 import { exportAction } from './export.action';
 import { importAction } from './import.action';
 import { wipeAction } from './wipe.action';

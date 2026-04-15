@@ -1,5 +1,5 @@
-import { BACKUP_ACTION } from './backup/actions';
-import { RECIPES_ACTION } from './recipes/actions';
+import { BACKUP_ACTION } from '../features/backup';
+import { RECIPES_ACTION } from '../features/recipes';
 
 export const BACKEND_ACTION = {
   RECIPES: { ...RECIPES_ACTION },

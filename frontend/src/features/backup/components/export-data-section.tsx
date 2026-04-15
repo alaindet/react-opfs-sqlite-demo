@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react';
 
 import { backend } from '../../../backend/backend';
-import { toFilenameDatetime } from '../../../backend/utils';
-import { DataTransferProgress } from '../../../backend/backup/types';
+import { toFilenameDatetime } from '../../../backend/core/utils';
+import { DataTransferProgress } from '../../../backend/features/backup';
 
 export function ExportDataSection() {
 
@@ -49,7 +49,7 @@ export function ExportDataSection() {
 
   return (
     <section>
-      <h3>Export data (fflate stream)</h3>
+      <h3>Export data</h3>
 
       <button type="button" disabled={isLoading} onClick={handleDownload}>
         Download data

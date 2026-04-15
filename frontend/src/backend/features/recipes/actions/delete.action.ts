@@ -1,10 +1,10 @@
-import { Recipe } from '../../types';
-import { Logger } from '../logger';
-import { WorkerRequest, WorkerResponder } from '../worker-message-broker';
-import { RECIPES_ACTION } from './actions';
-import { RecipesService } from './recipes.service';
+import { Logger } from '../../../core/logger';
+import { WorkerRequest, WorkerResponder } from '../../../core/worker-message-broker';
+import { RECIPES_ACTION } from './__names';
+import { RecipesService } from '../recipes.service';
+import { Recipe } from '../../../../types';
 
-export const createRecipesDeleteAction = (
+export const deleteAction = (
   logger: Logger,
   service: RecipesService,
 ) => ({

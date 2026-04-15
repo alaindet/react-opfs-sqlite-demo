@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@sqlite.org/sqlite-wasm": "^3.49.1-build2",
     "@recipe-app/backend": "*",
     "clsx": "^2.1.1",
     "fflate": "^0.8.2",

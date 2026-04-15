@@ -1,9 +1,9 @@
-import { CreateRecipeDto, Recipe, RecipeDatabaseRow } from '../../types';
-import { ImagesController } from '../images';
-import { IMAGE_MAX_DIMENSION, IMAGE_QUALITY } from '../constants';
-import { Logger } from '../logger';
-import { toSqlDatetime } from '../utils';
+import { ImagesController } from '../../core/images';
+import { IMAGE_MAX_DIMENSION, IMAGE_QUALITY } from '../../core/constants';
+import { Logger } from '../../core/logger';
+import { toSqlDatetime } from '../../core/utils';
 import { RecipesRepository } from './recipes.repository';
+import { CreateRecipeDto, Recipe, RecipeDatabaseRow } from '../../../types';
 
 export class RecipesService {
   #logger!: Logger;

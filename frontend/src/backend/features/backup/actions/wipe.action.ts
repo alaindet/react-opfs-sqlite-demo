@@ -1,8 +1,8 @@
-import { IMAGES_DIR } from '../../constants';
-import { DatabaseService } from '../../database';
-import { Logger } from '../../logger';
-import { OpfsDirectoryController } from '../../opfs';
-import { WorkerErrorResponse, WorkerRequest, WorkerResponder, WorkerSuccessResponse } from '../../worker-message-broker';
+import { IMAGES_DIR } from '../../../core/constants';
+import { DatabaseService } from '../../../core/database';
+import { Logger } from '../../../core/logger';
+import { OpfsDirectoryController } from '../../../core/opfs';
+import { WorkerErrorResponse, WorkerRequest, WorkerResponder, WorkerSuccessResponse } from '../../../core/worker-message-broker';
 import { BACKUP_ACTION } from './__names';
 
 export const wipeAction = (

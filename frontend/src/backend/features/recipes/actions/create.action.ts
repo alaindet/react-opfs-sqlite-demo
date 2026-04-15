@@ -1,10 +1,10 @@
-import { CreateRecipeDto, Recipe } from '../../types';
-import { Logger } from '../logger';
+import { Logger } from '../../../core/logger';
 import { WorkerErrorResponse, WorkerRequest, WorkerResponder, WorkerSuccessResponse } from '../worker-message-broker';
-import { RECIPES_ACTION } from './actions';
-import { RecipesService } from './recipes.service';
+import { RECIPES_ACTION } from './__names';
+import { RecipesService } from '../recipes.service';
+import { CreateRecipeDto, Recipe } from '../../../../types';
 
-export const createRecipesCreateAction = (
+export const createAction = (
   logger: Logger,
   service: RecipesService,
 ) => ({

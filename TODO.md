@@ -8,7 +8,9 @@
 - [x] ERROR: Downloading data post-wipe raises error
 - [x] Use fflate for creating and reading .zip streams
 - [x] Apply different compression levels when exporting: 6-8 for SQLite file, 0 for webp since it's already a compressed format
-- [ ] Minimize .zip dependencies
+- [x] Minimize .zip dependencies
+- [x] The export stream should wrap the images into the /images folder inside the .zip archive
+- [ ] Export progress
+- [ ] Count files from imported stream?
 - [ ] Use aliased imports
 - [ ] Move backend to "backend" package
-- [x] The export stream should wrap the images into the /images folder inside the .zip archive

@@ -46,7 +46,7 @@ export function ImportDataSection() {
 
   return (
     <section>
-      <h3>Import data (fflate stream)</h3>
+      <h3>Import data</h3>
       
       <input
         type="file"

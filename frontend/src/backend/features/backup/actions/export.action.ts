@@ -1,10 +1,11 @@
 import { Zip, ZipPassThrough } from 'fflate';
-import { DatabaseService } from '../../database';
-import { Logger } from '../../logger';
-import { OpfsDirectoryController } from '../../opfs';
-import { WorkerErrorResponse, WorkerRequest, WorkerResponder, WorkerSuccessResponse } from '../../worker-message-broker';
+
+import { DatabaseService } from '../../../core/database';
+import { Logger } from '../../../core/logger';
+import { OpfsDirectoryController } from '../../../core/opfs';
+import { WorkerErrorResponse, WorkerRequest, WorkerResponder, WorkerSuccessResponse } from '../../../core/worker-message-broker';
+import { DATABASE_FILENAME, IMAGES_DIR } from '../../../core/constants';
 import { BACKUP_ACTION } from './__names';
-import { DATABASE_FILENAME, IMAGES_DIR } from '../../constants';
 
 export const exportAction = (
   worker: DedicatedWorkerGlobalScope,

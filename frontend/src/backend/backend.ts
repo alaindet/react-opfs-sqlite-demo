@@ -1,8 +1,8 @@
 import { CreateRecipeDto, Recipe } from '../types';
-import { DataTransferProgress } from './backup/types';
-import { BACKEND_ACTION } from './constants';
-import { enforceDataPersistance } from './opfs/functions';
-import { WorkerClient, WorkerResponse, WorkerSuccessResponse } from './worker-message-broker';
+import { DataTransferProgress } from './features/backup/data-transfer-progress';
+import { BACKEND_ACTION } from './core/constants';
+import { enforceDataPersistance } from './core/opfs';
+import { WorkerClient, WorkerResponse, WorkerSuccessResponse } from './core/worker-message-broker';
 
 const workerUrl = new URL('./worker.ts', import.meta.url);
 const worker = new Worker(workerUrl, { type: 'module' });
