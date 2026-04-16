@@ -3,9 +3,10 @@ import { Zip, ZipPassThrough } from 'fflate';
 import { DatabaseService } from '../../../core/database';
 import { Logger } from '../../../core/logger';
 import { OpfsDirectoryController } from '../../../core/opfs';
-import { WorkerErrorResponse, WorkerRequest, WorkerResponder, WorkerSuccessResponse } from '../../../core/worker-message-broker';
+import { WORKER_PROGRESS_RESPONSE_STATE, WorkerErrorResponse, WorkerRequest, WorkerResponder, WorkerSuccessResponse } from '../../../core/worker-message-broker';
 import { DATABASE_FILENAME, IMAGES_DIR } from '../../../core/constants';
 import { BACKUP_ACTION } from './__names';
+import { createDataTransferProgress } from '../data-transfer-progress';
 
 export const exportAction = (
   worker: DedicatedWorkerGlobalScope,
@@ -19,10 +20,12 @@ export const exportAction = (
     res: WorkerResponder,
   ): Promise<WorkerSuccessResponse | WorkerErrorResponse> {
     const logger = _logger.createScopedLogger('export');
+    const totalFiles = await getTotalFiles();
+    const progress = createDataTransferProgress(totalFiles);
 
     try {
       const generator = generateZipChunks();
-      
+
       const exportStream = new ReadableStream<Uint8Array<ArrayBuffer>>({
         async pull(controller) {
           const { value, done } = await generator.next();
@@ -37,6 +40,9 @@ export const exportAction = (
         },
       });
 
+      worker.postMessage(res.success('Started exporting', progress.start(), {
+        progress: WORKER_PROGRESS_RESPONSE_STATE.START,
+      }));
       const message = 'Exporting all data in .zip';
       return res.success(message, exportStream, { stream: true });
     } catch (err: any) {
@@ -52,16 +58,16 @@ export const exportAction = (
       let resolve: DataChunkProcessFn | null = null;
       let error: Error | null = null;
       const pending: DataChunk[] = [];
-  
+
       const zip = new Zip();
-  
+
       zip.ondata = (err, chunk, final) => {
         if (err) {
           error = err;
           resolve?.({ data: new Uint8Array(), final: true });
           return;
         }
-  
+
         const item = {
           data: chunk.slice(),
           final,
@@ -75,14 +81,14 @@ export const exportAction = (
           pending.push(item);
         }
       };
-  
+
       const feedDone = feedZipBuffered(zip, prefetch).catch((err: any) => {
         error = err instanceof Error ? err : new Error(String(err));
       });
-  
+
       while (true) {
         const item = pending.shift() ?? await new Promise<DataChunk>(done => resolve = done);
-  
+
         if (error) {
           logger.error('Could not catch up with pending read files', { error });
           throw error;
@@ -94,7 +100,7 @@ export const exportAction = (
           break;
         }
       }
-  
+
       await feedDone;
     }
 
@@ -106,24 +112,16 @@ export const exportAction = (
       logger.trace('Adding the database to the .zip');
       zip.add(dbEntry);
       dbEntry.push(new Uint8Array(dbBuffer), true);
+      worker.postMessage(res.success('Exported database', progress.next(), {
+        progress: WORKER_PROGRESS_RESPONSE_STATE.NEXT,
+      }));
 
-      let imagesDir: FileSystemDirectoryHandle | null = null;
-
-      try {
-        logger.trace('Trying to get the handle of the /images directory');
-        imagesDir = await dirController.dirHandle.getDirectoryHandle(IMAGES_DIR);  
-      } catch {}
-
-      if (!imagesDir) {
-        throw new Error('Cannot find /images directory');
-      }
-  
-      // Bounded prefetch buffer — acts like a Go channel with capacity N
+      const imagesDir = await getImagesDir();
       const buffer: { name: string; data: Uint8Array }[] = [];
       let readerDone = false;
       let slotAvailable: (() => void) | null = null;
       let dataAvailable: (() => void) | null = null;
-  
+
       // Producer: reads files from OPFS into the buffer up to `prefetch`
       const readAhead = async () => {
         for await (const [name, _handle] of imagesDir.entries()) {
@@ -134,17 +132,17 @@ export const exportAction = (
           if (_handle.kind !== 'file') {
             continue;
           }
-  
+
           // If buffer is full, wait for the consumer to drain a slot
           while (buffer.length >= prefetch) {
             await new Promise<void>(fn => slotAvailable = fn);
           }
-  
+
           const handle = _handle as FileSystemFileHandle;
           const file = await handle.getFile();
           const data = new Uint8Array(await file.arrayBuffer());
           buffer.push({ name, data });
-  
+
           // Signal the consumer that data is available
           if (dataAvailable) {
             const fn = dataAvailable;
@@ -152,7 +150,7 @@ export const exportAction = (
             fn();
           }
         }
-  
+
         readerDone = true;
         if (dataAvailable) {
           const fn = dataAvailable as Function;
@@ -160,10 +158,10 @@ export const exportAction = (
           fn();
         }
       };
-  
+
       // Start the producer in the background
       const readerPromise = readAhead();
-  
+
       // Consumer: takes pre-read files and pushes them into the zip
       while (true) {
 
@@ -171,26 +169,32 @@ export const exportAction = (
         while (buffer.length === 0 && !readerDone) {
           await new Promise<void>(done => dataAvailable = done);
         }
-  
+
         const item = buffer.shift();
         if (!item) {
           break;
         }
-  
+
         // Open a slot for the producer
         if (slotAvailable) {
           const fn = slotAvailable as Function;
           slotAvailable = null;
           fn();
         }
-  
+
         const entry = new ZipPassThrough(`${IMAGES_DIR}/${item.name}`);
         zip.add(entry);
         entry.push(item.data, true);
+        worker.postMessage(res.success('Exported image', progress.next(), {
+          progress: WORKER_PROGRESS_RESPONSE_STATE.NEXT,
+        }));
       }
-  
+
       await readerPromise;
       zip.end();
+      worker.postMessage(res.success('Finished exporting', progress.end(), {
+        progress: WORKER_PROGRESS_RESPONSE_STATE.END,
+      }));
     }
 
     async function readDb(): Promise<ArrayBuffer> {
@@ -207,6 +211,28 @@ export const exportAction = (
       logger.trace('Removed database temporary file');
 
       return tempBuffer;
+    }
+
+    async function getTotalFiles(): Promise<number> {
+      const imagesDir = await getImagesDir();
+      let filesCount = 1; // Start from 1 to account for the database file
+
+      for await (const [_, handle] of imagesDir) {
+        if (handle.kind === 'file') {
+          filesCount++;
+        }
+      }
+
+      return filesCount;
+    }
+
+    async function getImagesDir(): Promise<FileSystemDirectoryHandle> {
+      try {
+        logger.trace('Trying to get the handle of the /images directory');
+        return dirController.dirHandle.getDirectoryHandle(IMAGES_DIR);
+      } catch {
+        throw new Error('Cannot find /images directory');
+      }
     }
   },
 });

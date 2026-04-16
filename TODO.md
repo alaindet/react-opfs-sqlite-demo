@@ -10,7 +10,8 @@
 - [x] Apply different compression levels when exporting: 6-8 for SQLite file, 0 for webp since it's already a compressed format
 - [x] Minimize .zip dependencies
 - [x] The export stream should wrap the images into the /images folder inside the .zip archive
-- [ ] Export progress
+- [x] Export progress
+- [ ] Notify export errors, i.e. when the /images dir is not found
 - [ ] Count files from imported stream?
 - [ ] Use aliased imports
 - [ ] Move backend to "backend" package

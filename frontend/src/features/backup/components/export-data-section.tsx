@@ -10,20 +10,8 @@ export function ExportDataSection() {
   const [progress, setProgress] = useState<DataTransferProgress | null>(null);
 
   const handleDownload = useCallback(async () => {
-    setIsLoading(true);
 
-    const res = await backend.backup.export(res => {
-      // TODO
-      console.log('progress', res);
-    });
-
-    if (res.error) {
-      alert(res.message);
-      setIsLoading(false);
-      return;
-    }
-
-    const handle = await window.showSaveFilePicker({
+    const exportedFileHandle = await getFilePicker({
       suggestedName: `backup.${toFilenameDatetime()}.zip`,
       types: [
         {
@@ -33,7 +21,22 @@ export function ExportDataSection() {
       ],
     });
 
-    const writable = await handle.createWritable();
+    if (!exportedFileHandle) {
+      console.log('Canceled export');
+      return;
+    }
+
+    setIsLoading(true);
+
+    const res = await backend.backup.export(res => setProgress(res.data));
+
+    if (res.error) {
+      alert(res.message);
+      setIsLoading(false);
+      return;
+    }
+
+    const writable = await exportedFileHandle.createWritable();
 
     if (res.data) {
       await res.data.pipeTo(writable);
@@ -41,7 +44,7 @@ export function ExportDataSection() {
       const message = 'Response body is empty';
       console.error(message);
       alert(message);
-      await writable.close(); 
+      await writable.close();
     }
 
     setIsLoading(false);
@@ -62,4 +65,15 @@ export function ExportDataSection() {
       )}
     </section>
   );
+}
+
+// TODO: Move
+async function getFilePicker(
+  options: SaveFilePickerOptions,
+): Promise<FileSystemFileHandle | null> {
+  try {
+    return window.showSaveFilePicker(options);
+  } catch (err: any) {
+    return null;
+  }
 }
