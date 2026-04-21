@@ -6,7 +6,7 @@
   ],
   "scripts": {
     "prebuild": "mkdir -p frontend/public && cp node_modules/coi-serviceworker/coi-serviceworker.min.js frontend/public",
-    "build": "npm run prebuild && npm run build -w frontend",
+    "build": "npm run prebuild && npm run build -w frontend -- --base=/react-opfs-sqlite-demo/",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d frontend/dist"
   },
