@@ -4,5 +4,13 @@
   "workspaces": [
     "backend",
     "frontend"
-  ]
+  ],
+  "scripts": {
+    "build": "npm run build -w frontend",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d frontend/dist"
+  },
+  "dependencies": {
+    "gh-pages": "^6.3.0"
+  }
 }
