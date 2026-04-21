@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { backend } from '../../backend/backend';
-import { WorkerErrorResponse } from '../../backend/worker-message-broker';
 import { RecipeForm } from '../../components/recipe-form/recipe-form';
 import { CreateRecipeDto, Recipe } from '../../types';
 import { RecipesList } from './recipes-list';
+import { WorkerErrorResponse } from '../../backend/core/worker-message-broker';
 
 export function RecipesPage() {
   const [recipes, setRecipes] = useState<Recipe[] | null>(null);

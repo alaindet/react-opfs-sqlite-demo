@@ -2,7 +2,6 @@
   "name": "recipe-app",
   "private": true,
   "workspaces": [
-    "backend",
     "frontend"
   ],
   "scripts": {

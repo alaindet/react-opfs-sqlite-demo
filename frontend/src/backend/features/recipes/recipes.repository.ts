@@ -1,8 +1,7 @@
 import sql from 'sql-template-tag';
-
-import { CreateRecipeDatabaseRow, Recipe, RecipeDatabaseRow } from '../../types';
-import { DatabaseService } from '../database/database.service';
-import { Logger } from '../logger';
+import { Recipe, RecipeDatabaseRow, CreateRecipeDatabaseRow } from '../../../types';
+import { DatabaseService } from '../../core/database';
+import { Logger } from '../../core/logger';
 
 const query = {
   selectByTitle: sql`
