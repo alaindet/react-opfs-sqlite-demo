@@ -5,7 +5,13 @@ import { createBrowserRouter, RouterProvider } from 'react-router';
 import routes from './routes';
 import './index.css';
 
-const router = createBrowserRouter(routes);
+const isProduction = import.meta.env.PROD;
+
+const options = isProduction
+  ? { basename: '/react-opfs-sqlite-demo/' }
+  : {};
+
+const router = createBrowserRouter(routes, options);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

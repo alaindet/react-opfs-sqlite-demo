@@ -11,7 +11,11 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true
+    "noEmit": true,
+    "types": [
+      "vite/client", 
+      "wicg-file-system-access"
+    ]
   },
   "include": [
     "src",
