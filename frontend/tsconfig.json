@@ -11,8 +11,7 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
-    "types": ["wicg-file-system-access"],
+    "noEmit": true
   },
   "include": [
     "src",

@@ -10,9 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@sqlite.org/sqlite-wasm": "^3.49.1-build2",
     "@recipe-app/backend": "*",
+    "@sqlite.org/sqlite-wasm": "^3.49.1-build2",
     "clsx": "^2.1.1",
+    "coi-serviceworker": "^0.1.7",
     "fflate": "^0.8.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
